@@ -41,7 +41,8 @@ defmodule Samly.SPHandler do
          {:halted, %Conn{halted: false} = conn} <- {:halted, pipethrough(conn, pipeline)} do
       updated_assertion = conn.private[:samly_assertion]
       computed = updated_assertion.computed
-      assertion = %Assertion{assertion | computed: computed, idp_id: idp_id}
+      attrs = updated_assertion.attributes
+      assertion = %Assertion{assertion | computed: computed, attributes: attrs, idp_id: idp_id}
 
       nameid = assertion.subject.name
       assertion_key = {idp_id, nameid}
