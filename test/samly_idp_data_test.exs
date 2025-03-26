@@ -295,4 +295,10 @@ defmodule SamlyIdpDataTest do
     %IdpData{} = idp_data = IdpData.load_provider(idp_config, sps)
     assert idp_data.nameid_format == :unknown
   end
+
+  test "multiple-nameid-format-entries-prefer-email", %{sps: sps} do
+    idp_config = %{@idp_config1 | metadata_file: "test/data/multiple_name_id_format.xml"}
+    %IdpData{} = idp_data = IdpData.load_provider(idp_config, sps)
+    assert idp_data.nameid_format == ~c"urn:oasis:names:tc:SAML:2.0:nameid-format:emailAddress"
+  end
 end
