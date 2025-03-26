@@ -77,7 +77,7 @@ defmodule Samly.IdpData do
   @post "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST"
 
   @entity_id_selector ~x"//#{@entdesc}/@entityID"sl
-  @nameid_format_selector ~x"//#{@entdesc}/#{@idpdesc}/#{@nameid}/text()"s
+  @nameid_format_list_selector ~x"//#{@entdesc}/#{@idpdesc}/#{@nameid}/text()"l
   @req_signed_selector ~x"//#{@entdesc}/#{@idpdesc}/@#{@signedreq}"s
   @sso_redirect_url_selector ~x"//#{@entdesc}/#{@idpdesc}/#{@ssos}[@Binding = '#{@redirect}']/@Location"s
   @sso_post_url_selector ~x"//#{@entdesc}/#{@idpdesc}/#{@ssos}[@Binding = '#{@post}']/@Location"s
@@ -378,10 +378,14 @@ defmodule Samly.IdpData do
 
   @spec get_nameid_format(SweetXml.xmlElement()) :: nameid_format()
   def get_nameid_format(md_elem) do
-    case get_data(md_elem, @nameid_format_selector) do
-      "" -> :unknown
-      nameid_format -> to_charlist(nameid_format)
+    case get_elements(md_elem, @nameid_format_list_selector) do
+      [] -> :unknown
+      elements -> find_name_id_format(elements)
     end
+  end
+
+  defp find_name_id_format(elements) do
+    Enum.find(elements, fn e -> String.ends_with?(to_string(e), "emailAddress") end) || List.first(elements)
   end
 
   @spec get_req_signed(SweetXml.xmlElement()) :: binary()
@@ -428,9 +432,13 @@ defmodule Samly.IdpData do
     end
   end
 
+  def get_elements(md_elem, selector) do
+    md_elem |> xpath(selector |> add_ns())
+  end
+
   @spec get_data(SweetXml.xmlElement(), %SweetXpath{}) :: binary()
   def get_data(md_elem, selector) do
-    md_elem |> xpath(selector |> add_ns()) |> String.trim()
+    get_elements(md_elem, selector) |> String.trim()
   end
 
   @spec add_ns(%SweetXpath{}) :: %SweetXpath{}
