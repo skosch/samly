@@ -1,0 +1,5 @@
+#!/bin/bash
+MIX_ENV="${MIX_ENV:-test}"
+LOG_LEVEL="${LOG_LEVEL:-warning}"
+
+MIX_ENV=$MIX_ENV LOG_LEVEL=$LOG_LEVEL mix $@

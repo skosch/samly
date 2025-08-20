@@ -21,3 +21,7 @@ erl_crash.dump
 .sobelow
 /docs/
 /.elixir_ls/
+
+# ignore devbox files
+/.nix-mix/
+/.nix-hex/

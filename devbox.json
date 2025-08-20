@@ -1,0 +1,28 @@
+{
+    "$schema": "https://raw.githubusercontent.com/jetify-com/devbox/0.16.0/.schema/devbox.schema.json",
+    "packages": [
+        "github:NixOS/nixpkgs/nixos-unstable#beam_minimal.packages.erlang_27.elixir_1_18"
+    ],
+    "env": {
+        "MIX_ENV": "test",
+        "LOG_LEVEL": "debug"
+    },
+    "shell": {
+        "init_hook": [
+            "mkdir -p .nix-mix",
+            "mkdir -p .nix-hex",
+            "export MIX_HOME=$PWD/.nix-mix",
+            "export HEX_HOME=$PWD/.nix-hex",
+            "export ERL_AFLAGS='-kernel shell_history enabled'",
+            "mix local.hex --force",
+            "mix local.rebar --force",
+            "mix deps.get"
+        ],
+        "scripts": {
+            "test": ["mix test --warnings-as-errors"],
+            "test.watch": ["mix test.watch --warnings-as-errors"],
+            "format": ["format"],
+            "ci": ["mix ci"]
+        }
+    }
+}

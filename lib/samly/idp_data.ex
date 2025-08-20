@@ -385,7 +385,8 @@ defmodule Samly.IdpData do
   end
 
   defp find_name_id_format(elements) do
-    Enum.find(elements, fn e -> String.ends_with?(to_string(e), "emailAddress") end) || List.first(elements)
+    Enum.find(elements, fn e -> String.ends_with?(to_string(e), "emailAddress") end) ||
+      List.first(elements)
   end
 
   @spec get_req_signed(SweetXml.xmlElement()) :: binary()

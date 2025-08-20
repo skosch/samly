@@ -15,6 +15,7 @@ defmodule Samly.Mixfile do
       package: package(),
       elixir: "~> 1.10",
       start_permanent: Mix.env() == :prod,
+      aliases: aliases(),
       deps: deps()
     ]
   end
@@ -57,6 +58,12 @@ defmodule Samly.Mixfile do
       files: ["config", "lib", "LICENSE", "mix.exs", "README.md"],
       licenses: ["MIT"],
       links: %{"GitHub" => @source_url}
+    ]
+  end
+
+  defp aliases do
+    [
+      ci: ["test --warnings-as-errors", "format --check-formatted"]
     ]
   end
 end
