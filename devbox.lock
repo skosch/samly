@@ -1,9 +1,9 @@
 {
   "lockfile_version": "1",
   "packages": {
-    "github:NixOS/nixpkgs/nixos-unstable#beam_minimal.packages.erlang_27.elixir_1_18": {
+    "github:NixOS/nixpkgs/nixos-unstable#beam_minimal.packages.erlang_28.elixir_1_18": {
       "last_modified": "2025-08-14T15:51:38Z",
-      "resolved": "github:NixOS/nixpkgs/fbcf476f790d8a217c3eab4e12033dc4a0f6d23c?lastModified=1755186698&narHash=sha256-wNO3%2BKs2jZJ4nTHMuks%2BcxAiVBGNuEBXsT29Bz6HASo%3D#beam_minimal.packages.erlang_27.elixir_1_18"
+      "resolved": "github:NixOS/nixpkgs/fbcf476f790d8a217c3eab4e12033dc4a0f6d23c?lastModified=1755186698&narHash=sha256-wNO3%2BKs2jZJ4nTHMuks%2BcxAiVBGNuEBXsT29Bz6HASo%3D#beam_minimal.packages.erlang_28.elixir_1_18"
     },
     "github:NixOS/nixpkgs/nixpkgs-unstable": {
       "last_modified": "2025-08-19T04:17:39Z",
