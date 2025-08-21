@@ -37,7 +37,7 @@ defmodule Samly.Mixfile do
       {:esaml, "~> 4.3"},
       {:sweet_xml, "~> 0.6"},
       {:dialyxir, "~> 1.0", only: [:dev], runtime: false},
-      {:ex_doc, "~> 0.19", only: :dev, runtime: false},
+      {:ex_doc, "~> 0.31", only: :dev, runtime: false},
       {:mix_test_watch, "~> 1.1", only: [:dev, :test], runtime: false},
       {:floki, "~> 0.36.2", only: [:dev, :test], runtime: false}
     ]
