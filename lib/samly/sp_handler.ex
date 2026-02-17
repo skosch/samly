@@ -78,7 +78,7 @@ defmodule Samly.SPHandler do
         |> pipethrough(error_pipeline)
         |> case do
           %Conn{halted: true} = conn ->
-            {:halted, conn}
+            conn
 
           conn ->
             if idp.debug_mode do
