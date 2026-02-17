@@ -4,14 +4,14 @@ A SAML 2.0 Service Provider Single-Sign-On Authentication library. This Plug lib
 
 This has been used in the wild with the following Identity Providers:
 
-+ Okta
-+ Ping Identity
-+ OneLogin
-+ ADFS
-+ Nexus GO
-+ Shibboleth
-+ SimpleSAMLphp
-+ Google
+- Okta
+- Ping Identity
+- OneLogin
+- ADFS
+- Nexus GO
+- Shibboleth
+- SimpleSAMLphp
+- Google
 
 This library uses Erlang [`esaml`](https://github.com/dropbox/esaml) to provide plug enabled routes.
 
@@ -113,13 +113,13 @@ example URL: `https://do-good.org/sso/auth/signin/affiliates`. The idp_id
 in this URL is "affiliates". If you have more than one IdP, only this last
 part changes. The URLs for this model are:
 
-| Description | URL |
-|:----|:----|
-| Sign-in button/link in Web UI | `/sso/auth/signin/affiliates` |
-| Sign-out button/link in Web UI | `/sso/auth/signout/affiliates` |
-| SP Metadata URL | `https://do-good.org/sso/sp/metadata/affiliates` |
-| SAML Assertion Consumer Service | `https://do-good.org/sso/sp/consume/affiliates` |
-| SAML SingleLogout Service | `https://do-good.org/sso/sp/logout/affiliates` |
+| Description                     | URL                                              |
+| :------------------------------ | :----------------------------------------------- |
+| Sign-in button/link in Web UI   | `/sso/auth/signin/affiliates`                    |
+| Sign-out button/link in Web UI  | `/sso/auth/signout/affiliates`                   |
+| SP Metadata URL                 | `https://do-good.org/sso/sp/metadata/affiliates` |
+| SAML Assertion Consumer Service | `https://do-good.org/sso/sp/consume/affiliates`  |
+| SAML SingleLogout Service       | `https://do-good.org/sso/sp/logout/affiliates`   |
 
 The path segment model is the default one in `Samly`. If there is only one Identity Provider, use this mode.
 
@@ -135,13 +135,13 @@ The path segment model is the default one in `Samly`. If there is only one Ident
 In this model, the subdomain name is used as the idp_id. Here is an example URL: `https://ngo.do-good.org/sso/auth/signin`. Here `ngo` is the idp_id. The URLs supported by `Samly`
 in this model look different.
 
-| Description | URL |
-|:----|:----|
-| Sign-in button/link in Web UI | `/sso/auth/signin` |
-| Sign-out button/link in Web UI | `/sso/auth/signout` |
-| SP Metadata URL | `https://ngo.do-good.org/sso/sp/metadata` |
-| SAML Assertion Consumer Service | `https://ngo.do-good.org/sso/sp/consume` |
-| SAML SingleLogout Service | `https://ngo.do-good.org/sso/sp/logout` |
+| Description                     | URL                                       |
+| :------------------------------ | :---------------------------------------- |
+| Sign-in button/link in Web UI   | `/sso/auth/signin`                        |
+| Sign-out button/link in Web UI  | `/sso/auth/signout`                       |
+| SP Metadata URL                 | `https://ngo.do-good.org/sso/sp/metadata` |
+| SAML Assertion Consumer Service | `https://ngo.do-good.org/sso/sp/consume`  |
+| SAML SingleLogout Service       | `https://ngo.do-good.org/sso/sp/logout`   |
 
 > Take a look at [`samly_howto`](https://github.com/dropbox/samly_howto) - a reference/demo
 > application on how to use this library.
@@ -195,32 +195,32 @@ config :samly, Samly.Provider,
   ]
 ```
 
-| Parameters | Description |
-|:------------|:-----------|
-| `idp_id_from` | _(optional)_`:path_segment` or `:subdomain`. Default is `:path_segment`. |
-| **Service Provider Parameters** | |
-| `id` | _(mandatory)_ |
-| `identity_id` | _(optional)_ If omitted, the metadata URL will be used |
-| `certfile` | _(optional)_ This is needed when SAML requests/responses from `Samly` need to be signed. Make sure to **set this in a production deployment**. Could be omitted during development if your IDP is setup to not require signing. If that is the case, the following **Identity Provider Parameters** must be explicitly set to false: `sign_requests`, `sign_metadata`|
-| `keyfile` | _(optional)_ Similar to `certfile` |
-| `contact_name` | _(optional)_ Technical contact name for the Service Provider |
-| `contact_email` | _(optional)_ Technical contact email address |
-| `org_name` | _(optional)_ SAML Service Provider (your app) Organization name |
-| `org_displayname` | _(optional)_ SAML SP Organization displayname |
-| `org_url` | _(optional)_ Service Provider Organization web site URL |
-| **Identity Provider Parameters** | |
-| `id` | _(mandatory)_ This will be the idp_id in the URLs |
-| `sp_id` | _(mandatory)_ The service provider definition to be used with this Identity Provider definition |
-| `base_url` | _(optional)_ If missing `Samly` will use the current URL to derive this. It is better to define this in production deployment. |
-| `metadata_file` | _(mandatory if `metadata` is not set)_ Path to the IdP metadata XML file obtained from the Identity Provider. This will be ignored if `metadata` is non-nil. |
-| `metadata` | _(mandatory if `metadata_file` is not set))_ String containing IdP metadata XML obtained from the Identity Provider. |
-| `pre_session_create_pipeline` | _(optional)_ Check the customization section. |
-| `use_redirect_for_req` | _(optional)_ Default is `false`. When this is `false`, `Samly` will POST to the IdP SAML endpoints. |
-| `sign_requests`, `sign_metadata` | _(optional)_ Default is `true`. |
-| `signed_assertion_in_resp`, `signed_envelopes_in_resp` | _(optional)_ Default is `true`. When `true`, `Samly` expects the requests and responses from IdP to be signed. |
-| `allow_idp_initiated_flow` | _(optional)_ Default is `false`. IDP initiated SSO is allowed only when this is set to `true`. |
-| `allowed_target_urls` | _(optional)_ Default is `[]`. `Samly` uses this **only** when `allow_idp_initiated_flow` parameter is set to `true`. Make sure to set this to one or more exact URLs you want to allow (whitelist). The URL to redirect the user after completing the SSO flow is sent from IDP in auth response as `relay_state`. This `relay_state` target URL is matched against this URL list. Set the value to `nil` if you do not want this whitelist capability. |
-| `nameid_format` | _(optional)_ When specified, `Samly` includes the value as the `NameIDPolicy` element's `Format` attribute in the login request. Value must either be a string or one of the following atoms: `:email`, `:x509`, `:windows`, `:krb`, `:persistent`, `:transient`. Use the string value when you need to specify a non-standard/custom nameid format supported by your IdP. |
+| Parameters                                             | Description                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| :----------------------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `idp_id_from`                                          | _(optional)_`:path_segment` or `:subdomain`. Default is `:path_segment`.                                                                                                                                                                                                                                                                                                                                                                                |
+| **Service Provider Parameters**                        |                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| `id`                                                   | _(mandatory)_                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| `identity_id`                                          | _(optional)_ If omitted, the metadata URL will be used                                                                                                                                                                                                                                                                                                                                                                                                  |
+| `certfile`                                             | _(optional)_ This is needed when SAML requests/responses from `Samly` need to be signed. Make sure to **set this in a production deployment**. Could be omitted during development if your IDP is setup to not require signing. If that is the case, the following **Identity Provider Parameters** must be explicitly set to false: `sign_requests`, `sign_metadata`                                                                                   |
+| `keyfile`                                              | _(optional)_ Similar to `certfile`                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| `contact_name`                                         | _(optional)_ Technical contact name for the Service Provider                                                                                                                                                                                                                                                                                                                                                                                            |
+| `contact_email`                                        | _(optional)_ Technical contact email address                                                                                                                                                                                                                                                                                                                                                                                                            |
+| `org_name`                                             | _(optional)_ SAML Service Provider (your app) Organization name                                                                                                                                                                                                                                                                                                                                                                                         |
+| `org_displayname`                                      | _(optional)_ SAML SP Organization displayname                                                                                                                                                                                                                                                                                                                                                                                                           |
+| `org_url`                                              | _(optional)_ Service Provider Organization web site URL                                                                                                                                                                                                                                                                                                                                                                                                 |
+| **Identity Provider Parameters**                       |                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| `id`                                                   | _(mandatory)_ This will be the idp_id in the URLs                                                                                                                                                                                                                                                                                                                                                                                                       |
+| `sp_id`                                                | _(mandatory)_ The service provider definition to be used with this Identity Provider definition                                                                                                                                                                                                                                                                                                                                                         |
+| `base_url`                                             | _(optional)_ If missing `Samly` will use the current URL to derive this. It is better to define this in production deployment.                                                                                                                                                                                                                                                                                                                          |
+| `metadata_file`                                        | _(mandatory if `metadata` is not set)_ Path to the IdP metadata XML file obtained from the Identity Provider. This will be ignored if `metadata` is non-nil.                                                                                                                                                                                                                                                                                            |
+| `metadata`                                             | _(mandatory if `metadata_file` is not set))_ String containing IdP metadata XML obtained from the Identity Provider.                                                                                                                                                                                                                                                                                                                                    |
+| `pre_session_create_pipeline`                          | _(optional)_ Check the customization section.                                                                                                                                                                                                                                                                                                                                                                                                           |
+| `use_redirect_for_req`                                 | _(optional)_ Default is `false`. When this is `false`, `Samly` will POST to the IdP SAML endpoints.                                                                                                                                                                                                                                                                                                                                                     |
+| `sign_requests`, `sign_metadata`                       | _(optional)_ Default is `true`.                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| `signed_assertion_in_resp`, `signed_envelopes_in_resp` | _(optional)_ Default is `true`. When `true`, `Samly` expects the requests and responses from IdP to be signed.                                                                                                                                                                                                                                                                                                                                          |
+| `allow_idp_initiated_flow`                             | _(optional)_ Default is `false`. IDP initiated SSO is allowed only when this is set to `true`.                                                                                                                                                                                                                                                                                                                                                          |
+| `allowed_target_urls`                                  | _(optional)_ Default is `[]`. `Samly` uses this **only** when `allow_idp_initiated_flow` parameter is set to `true`. Make sure to set this to one or more exact URLs you want to allow (whitelist). The URL to redirect the user after completing the SSO flow is sent from IDP in auth response as `relay_state`. This `relay_state` target URL is matched against this URL list. Set the value to `nil` if you do not want this whitelist capability. |
+| `nameid_format`                                        | _(optional)_ When specified, `Samly` includes the value as the `NameIDPolicy` element's `Format` attribute in the login request. Value must either be a string or one of the following atoms: `:email`, `:x509`, `:windows`, `:krb`, `:persistent`, `:transient`. Use the string value when you need to specify a non-standard/custom nameid format supported by your IdP.                                                                              |
 
 #### Authenticated SAML Assertion State Store
 
@@ -236,9 +236,9 @@ config :samly, Samly.State,
 
 This state configuration is optional. If omitted, `Samly` uses `Samly.State.ETS` provider by default.
 
-| Options | Description |
-|:------------|:-----------|
-| `opts` | _(optional)_ The `:table` option is the ETS table name for storing the assertions. This ETS table is created during the store provider initialization if it is not already present. Default is `samly_assertions_table`. |
+| Options | Description                                                                                                                                                                                                              |
+| :------ | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `opts`  | _(optional)_ The `:table` option is the ETS table name for storing the assertions. This ETS table is created during the store provider initialization if it is not already present. Default is `samly_assertions_table`. |
 
 > Use `Samly.State.Session` provider in a clustered deployment. This provider uses
 > the Plug Sessions to keep the authenticated SAML assertions.
@@ -251,9 +251,9 @@ config :samly, Samly.State,
   opts: [key: :my_assertion_key]
 ```
 
-| Options | Description |
-|:------------|:-----------|
-| `opts` | _(optional)_ The `:key` is the name of the session key where assertion is stored. Default is `:samly_assertion`. |
+| Options | Description                                                                                                      |
+| :------ | :--------------------------------------------------------------------------------------------------------------- |
+| `opts`  | _(optional)_ The `:key` is the name of the session key where assertion is stored. Default is `:samly_assertion`. |
 
 ## SAML Assertion
 
@@ -359,29 +359,74 @@ config :samly, Samly.Provider,
   ]
 ```
 
+#### Error Pipeline
+
+It is also possible to provide an error Plug pipeline for custom error handling.
+
+This is a vanilla Plug Pipeline, similar to the `pre_session_create_pipeline`. The SAML error reason from
+the IdP is made available in the Plug connection as a "private". The SAML assertion is available too, but
+only if the error occurred after it was decoded. In `debug_mode` SAML response is available.
+
+If the error pipeline is not provided in the config, or the error pipeline does not halt the connection, default `Samly` behavior will follow.
+
+Here is a sample error pipeline:
+
+```elixir
+defmodule MySamlyErrorPipeline do
+  use Plug.Builder
+
+  plug :handle_error
+
+  def handle_error(conn, _opts) do
+    error = conn.private[:samly_error]
+    # assertion = conn.private[:samly_assertion]
+    # saml_response = conn.private[:samly_saml_response] - only in debug mode
+
+    #... Log the error and do other necessary things
+
+    #... then redirect and halt
+    conn
+    |> redirect(to: ~p"/auth/error?reason=#{error}")
+    |> halt()
+end
+```
+
+Make this pipeline available in your config:
+
+```elixir
+config :samly, Samly.Provider,
+  identity_providers: [
+    %{
+      # ...
+      on_error_pipeline: MySamlyErrorPipeline,
+      # ...
+    }
+  ]
+```
+
 #### State Store
 
 Take a look at the implementation of `Samly.State.ETS` or `Samly.State.Session` and use those as examples showing how to create your own state store (based on redis, memcached, database etc.).
 
 ## Security Related
 
-+   `Samly` initiated sign-in/sign-out requests send `RelayState` to IdP and expect to get that back. Mismatched or missing `RelayState` in IdP responses to SP initiated requests will fail (with HTTP `403 access_denied`).
-+   Besides the `RelayState`, the request and response `idp_id`s must match. Response is rejected if they don't.
-+   `Samly` makes the original request ID that an auth response corresponds to
-in `Samly.Subject.in_response_to` field. It is the responsibility of the consuming application to use this information along with the validity period in the assertion to check for **replay attacks**. The consuming application should use the `pre_session_create_pipeline` to perform this check. You may need a database or a distributed cache such as memcache in a clustered setup to keep track of these request IDs for their validity period to perform this check. Be aware that `in_response_to` field is **not** set when IDP initialized authorization flow is used.
-+   OOTB SAML requests and responses are signed.
-+   Signature digest method supported: `SHA256`.
-    > Some Identity Providers may be using `SHA1` by default.
-    > Make sure to configure the IdP to use `SHA256`. `Samly`
-    > will reject (`access_denied`) IdP responses using `SHA1`.
-+   `esaml` provides additional checks such as trusted certificate verification, recipient verification among others.
-+   By default, `Samly` signs the SAML requests it sends to the Identity Provider. It also
-    expects the SAML reqsponses to be signed (both assertion and envelopes). If your IdP is
-    not configured to sign, you will have to explicitly turn them off in the configuration.
-    It is highly recommended to turn signing on in production deployments.
-+   Encrypted Assertions are supported in `Samly`. There are no explicit config settings for this. Decryption happens automatically when encrypted assertions are detected in the SAML response.
-    > [Supported Encryption algorithms](https://github.com/dropbox/esaml#assertion-encryption)
-+   Make sure to use HTTPS URLs in production deployments.
+- `Samly` initiated sign-in/sign-out requests send `RelayState` to IdP and expect to get that back. Mismatched or missing `RelayState` in IdP responses to SP initiated requests will fail (with HTTP `403 access_denied`).
+- Besides the `RelayState`, the request and response `idp_id`s must match. Response is rejected if they don't.
+- `Samly` makes the original request ID that an auth response corresponds to
+  in `Samly.Subject.in_response_to` field. It is the responsibility of the consuming application to use this information along with the validity period in the assertion to check for **replay attacks**. The consuming application should use the `pre_session_create_pipeline` to perform this check. You may need a database or a distributed cache such as memcache in a clustered setup to keep track of these request IDs for their validity period to perform this check. Be aware that `in_response_to` field is **not** set when IDP initialized authorization flow is used.
+- OOTB SAML requests and responses are signed.
+- Signature digest method supported: `SHA256`.
+  > Some Identity Providers may be using `SHA1` by default.
+  > Make sure to configure the IdP to use `SHA256`. `Samly`
+  > will reject (`access_denied`) IdP responses using `SHA1`.
+- `esaml` provides additional checks such as trusted certificate verification, recipient verification among others.
+- By default, `Samly` signs the SAML requests it sends to the Identity Provider. It also
+  expects the SAML reqsponses to be signed (both assertion and envelopes). If your IdP is
+  not configured to sign, you will have to explicitly turn them off in the configuration.
+  It is highly recommended to turn signing on in production deployments.
+- Encrypted Assertions are supported in `Samly`. There are no explicit config settings for this. Decryption happens automatically when encrypted assertions are detected in the SAML response.
+  > [Supported Encryption algorithms](https://github.com/dropbox/esaml#assertion-encryption)
+- Make sure to use HTTPS URLs in production deployments.
 
 ## FAQ
 
