@@ -86,7 +86,7 @@ defmodule Samly.SPHandler do
               |> put_resp_header("content-type", "text/html")
               |> send_resp(
                 403,
-                "<html><body><div><h1>access_denied</h1><p><b>Error:</b><br /><pre><code>#{inspect(reason)}</code></pre></p><p><b>Raw Response:</b><br /><pre><code>#{saml_response}</code></pre></p></div></body></html"
+                "<html><body><div><h1>access_denied</h1><p><b>Error:</b><br /><pre><code>#{inspect(reason)}</code></pre></p><p><b>Raw Response:</b><br /><pre><code>#{saml_response}</code></pre></p></div></body></html>"
               )
             else
               send_resp(conn, 403, "access_denied")
