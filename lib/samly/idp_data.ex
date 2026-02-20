@@ -92,10 +92,21 @@ defmodule Samly.IdpData do
   @type id :: binary()
 
   @spec load_providers([map], %{required(id()) => %SpData{}}) ::
-          %{required(id()) => %IdpData{}} | no_return()
+          %{required(id()) => %IdpData{}}
   def load_providers(prov_config, service_providers) do
     prov_config
-    |> Enum.map(fn idp_config -> load_provider(idp_config, service_providers) end)
+    |> Enum.flat_map(fn idp_config ->
+      try do
+        [load_provider(idp_config, service_providers)]
+      rescue
+        error ->
+          Logger.error(
+            "[Samly] Failed to load identity provider #{inspect(idp_config[:id])}: #{Exception.message(error)}"
+          )
+
+          []
+      end
+    end)
     |> Enum.filter(fn idp_data -> idp_data.valid? end)
     |> Enum.map(fn idp_data -> {idp_data.id, idp_data} end)
     |> Enum.into(%{})
