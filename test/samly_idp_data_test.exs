@@ -227,6 +227,20 @@ defmodule SamlyIdpDataTest do
     refute idp_data.valid?
   end
 
+  test "invalid idp metadata does not prevent other idps from loading", %{sps: sps} do
+    bad_idp_config = %{
+      id: "bad_idp",
+      sp_id: "sp1",
+      base_url: "http://samly.howto:4003/sso",
+      metadata_file: "test/data/unpadded_cert_idp_metadata.xml"
+    }
+
+    providers = IdpData.load_providers([@idp_config1, bad_idp_config], sps)
+
+    assert Map.has_key?(providers, "idp1")
+    refute Map.has_key?(providers, "bad_idp")
+  end
+
   test "invalid-idp-config-2", %{sps: sps} do
     idp_config = %{@idp_config1 | sp_id: "unknown-sp"}
     %IdpData{} = idp_data = IdpData.load_provider(idp_config, sps)
