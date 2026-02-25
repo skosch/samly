@@ -23,7 +23,14 @@ defmodule Samly.SPRouter do
     cond do
       conn.params["SAMLResponse"] != nil -> Samly.SPHandler.handle_logout_response(conn)
       conn.params["SAMLRequest"] != nil -> Samly.SPHandler.handle_logout_request(conn)
-      true -> conn |> send_resp(403, "invalid_request")
+      true ->
+        conn
+        |> Plug.Conn.put_private(:samly_error, :invalid_request)
+        |> Samly.Helper.run_error_pipeline()
+        |> case do
+          %Plug.Conn{halted: true} = conn -> conn
+          conn -> conn |> send_resp(403, "invalid_request")
+        end
     end
   end
 

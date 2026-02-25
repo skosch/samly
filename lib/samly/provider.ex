@@ -73,6 +73,7 @@ defmodule Samly.Provider do
     identity_providers =
       Samly.IdpData.load_providers(opts[:identity_providers] || [], service_providers)
 
+    Application.put_env(:samly, :on_error_pipeline, opts[:on_error_pipeline])
     Application.put_env(:samly, :service_providers, service_providers)
     Application.put_env(:samly, :identity_providers, identity_providers)
 

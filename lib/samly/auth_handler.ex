@@ -124,7 +124,13 @@ defmodule Samly.AuthHandler do
         )
 
       _ ->
-        conn |> send_resp(403, "access_denied")
+        conn
+        |> put_private(:samly_error, :no_active_session)
+        |> Helper.run_error_pipeline()
+        |> case do
+          %Plug.Conn{halted: true} = conn -> conn
+          conn -> conn |> send_resp(403, "access_denied")
+        end
     end
 
     # rescue

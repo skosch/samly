@@ -30,7 +30,6 @@ defmodule Samly.SPHandler do
 
     %IdpData{
       pre_session_create_pipeline: pipeline,
-      on_error_pipeline: error_pipeline,
       esaml_sp_rec: sp_rec
     } = idp
 
@@ -75,7 +74,7 @@ defmodule Samly.SPHandler do
             conn
           end
         end)
-        |> pipethrough(error_pipeline)
+        |> Helper.run_error_pipeline()
         |> case do
           %Conn{halted: true} = conn ->
             conn
@@ -94,7 +93,13 @@ defmodule Samly.SPHandler do
         end
 
       _ ->
-        send_resp(conn, 403, "access_denied")
+        conn
+        |> put_private(:samly_error, :access_denied)
+        |> Helper.run_error_pipeline()
+        |> case do
+          %Conn{halted: true} = conn -> conn
+          conn -> send_resp(conn, 403, "access_denied")
+        end
     end
 
     # rescue
@@ -182,7 +187,14 @@ defmodule Samly.SPHandler do
       |> configure_session(drop: true)
       |> redirect(302, target_url)
     else
-      error -> conn |> send_resp(403, "invalid_request #{inspect(error)}")
+      error ->
+        conn
+        |> put_private(:samly_error, {:invalid_logout_response, error})
+        |> Helper.run_error_pipeline()
+        |> case do
+          %Conn{halted: true} = conn -> conn
+          conn -> conn |> send_resp(403, "invalid_request #{inspect(error)}")
+        end
     end
 
     # rescue

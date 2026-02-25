@@ -395,12 +395,9 @@ Make this pipeline available in your config:
 
 ```elixir
 config :samly, Samly.Provider,
+  on_error_pipeline: MySamlyErrorPipeline,
   identity_providers: [
-    %{
-      # ...
-      on_error_pipeline: MySamlyErrorPipeline,
-      # ...
-    }
+    # ...
   ]
 ```
 

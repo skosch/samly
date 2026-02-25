@@ -10,6 +10,13 @@ defmodule Samly.Helper do
     Map.get(idps, idp_id)
   end
 
+  def run_error_pipeline(conn) do
+    case Application.get_env(:samly, :on_error_pipeline) do
+      nil -> conn
+      pipeline -> pipeline.call(conn, [])
+    end
+  end
+
   @spec get_metadata_uri(nil | binary, binary) :: nil | charlist
   def get_metadata_uri(nil, _idp_id), do: nil
 
