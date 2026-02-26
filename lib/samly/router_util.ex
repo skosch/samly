@@ -29,13 +29,7 @@ defmodule Samly.RouterUtil do
     if idp do
       conn |> Conn.put_private(:samly_idp, idp)
     else
-      conn
-      |> Conn.put_private(:samly_error, :unknown_idp)
-      |> Helper.run_error_pipeline()
-      |> case do
-        %Conn{halted: true} = conn -> conn
-        conn -> conn |> Conn.send_resp(403, "invalid_request unknown IdP") |> Conn.halt()
-      end
+      Helper.handle_error_response(conn, :unknown_idp, 403, "invalid_request unknown IdP")
     end
   end
 
@@ -49,18 +43,12 @@ defmodule Samly.RouterUtil do
           "[Samly] target_url must be x-www-form-urlencoded: #{inspect(conn.params["target_url"])}"
         )
 
-        conn
-        |> Conn.put_private(:samly_error, :invalid_target_url_encoding)
-        |> Helper.run_error_pipeline()
-        |> case do
-          %Conn{halted: true} = conn ->
-            conn
-
-          conn ->
-            conn
-            |> Conn.send_resp(400, "target_url must be x-www-form-urlencoded")
-            |> Conn.halt()
-        end
+        Helper.handle_error_response(
+          conn,
+          :invalid_target_url_encoding,
+          400,
+          "target_url must be x-www-form-urlencoded"
+        )
     end
   end
 

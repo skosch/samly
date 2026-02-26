@@ -93,13 +93,7 @@ defmodule Samly.SPHandler do
         end
 
       _ ->
-        conn
-        |> put_private(:samly_error, :access_denied)
-        |> Helper.run_error_pipeline()
-        |> case do
-          %Conn{halted: true} = conn -> conn
-          conn -> send_resp(conn, 403, "access_denied")
-        end
+        Helper.handle_error_response(conn, :access_denied, 403, "access_denied")
     end
 
     # rescue
@@ -188,13 +182,12 @@ defmodule Samly.SPHandler do
       |> redirect(302, target_url)
     else
       error ->
-        conn
-        |> put_private(:samly_error, {:invalid_logout_response, error})
-        |> Helper.run_error_pipeline()
-        |> case do
-          %Conn{halted: true} = conn -> conn
-          conn -> conn |> send_resp(403, "invalid_request #{inspect(error)}")
-        end
+        Helper.handle_error_response(
+          conn,
+          {:invalid_logout_response, error},
+          403,
+          "invalid_request #{inspect(error)}"
+        )
     end
 
     # rescue

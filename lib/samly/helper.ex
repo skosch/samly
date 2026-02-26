@@ -10,10 +10,24 @@ defmodule Samly.Helper do
     Map.get(idps, idp_id)
   end
 
-  def run_error_pipeline(conn) do
+  def handle_error_response(%Plug.Conn{} = conn, error, status, body) do
+    conn
+    |> Plug.Conn.put_private(:samly_error, error)
+    |> run_error_pipeline()
+    |> case do
+      %Plug.Conn{halted: true} = conn -> conn
+      conn -> conn |> Plug.Conn.send_resp(status, body) |> Plug.Conn.halt()
+    end
+  end
+
+  def run_error_pipeline(%Plug.Conn{} = conn) do
     case Application.get_env(:samly, :on_error_pipeline) do
-      nil -> conn
-      pipeline -> pipeline.call(conn, [])
+      nil ->
+        conn
+
+      pipeline ->
+        conn = pipeline.call(conn, [])
+        if conn.state in [:sent, :chunked, :set_chunked], do: %{conn | halted: true}, else: conn
     end
   end
 
