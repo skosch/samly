@@ -27,7 +27,12 @@ defmodule Samly.SPHandler do
 
   def consume_signin_response(conn) do
     %IdpData{id: idp_id} = idp = conn.private[:samly_idp]
-    %IdpData{pre_session_create_pipeline: pipeline, esaml_sp_rec: sp_rec} = idp
+
+    %IdpData{
+      pre_session_create_pipeline: pipeline,
+      esaml_sp_rec: sp_rec
+    } = idp
+
     sp = ensure_sp_uris_set(sp_rec, conn)
 
     saml_encoding = conn.body_params["SAMLEncoding"]
@@ -53,17 +58,42 @@ defmodule Samly.SPHandler do
       |> put_session_new("samly_assertion_key", assertion_key)
       |> redirect(302, target_url)
     else
-      {:halted, conn} -> conn
+      {:halted, conn} ->
+        conn
+
       {:error, reason} ->
-        case idp do
-          %IdpData{debug_mode: true} ->
+        {_, assertion_or_error} = Helper.decode_idp_auth_resp(sp, saml_encoding, saml_response)
+
+        conn
+        |> put_private(:samly_error, reason)
+        |> put_private(:samly_assertion, assertion_or_error)
+        |> then(fn conn ->
+          if idp.debug_mode do
+            put_private(conn, :samly_saml_response, saml_response)
+          else
             conn
-            |> put_resp_header("content-type", "text/html")
-            |> send_resp(403, "<html><body><div><h1>access_denied</h1><p><b>Error:</b><br /><pre><code>#{inspect(reason)}</code></pre></p><p><b>Raw Response:</b><br /><pre><code>#{saml_response}</code></pre></p></div></body></html")
-          _ ->
-            conn |> send_resp(403, "access_denied #{inspect(reason)}")
+          end
+        end)
+        |> Helper.run_error_pipeline()
+        |> case do
+          %Conn{halted: true} = conn ->
+            conn
+
+          conn ->
+            if idp.debug_mode do
+              conn
+              |> put_resp_header("content-type", "text/html")
+              |> send_resp(
+                403,
+                "<html><body><div><h1>access_denied</h1><p><b>Error:</b><br /><pre><code>#{inspect(reason)}</code></pre></p><p><b>Raw Response:</b><br /><pre><code>#{saml_response}</code></pre></p></div></body></html>"
+              )
+            else
+              send_resp(conn, 403, "access_denied")
+            end
         end
-      _ -> conn |> send_resp(403, "access_denied")
+
+      _ ->
+        Helper.handle_error_response(conn, :access_denied, 403, "access_denied")
     end
 
     # rescue
@@ -151,7 +181,13 @@ defmodule Samly.SPHandler do
       |> configure_session(drop: true)
       |> redirect(302, target_url)
     else
-      error -> conn |> send_resp(403, "invalid_request #{inspect(error)}")
+      error ->
+        Helper.handle_error_response(
+          conn,
+          {:invalid_logout_response, error},
+          403,
+          "invalid_request #{inspect(error)}"
+        )
     end
 
     # rescue

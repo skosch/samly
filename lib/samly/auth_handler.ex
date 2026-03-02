@@ -124,7 +124,7 @@ defmodule Samly.AuthHandler do
         )
 
       _ ->
-        conn |> send_resp(403, "access_denied")
+        Helper.handle_error_response(conn, :no_active_session, 403, "access_denied")
     end
 
     # rescue

@@ -383,7 +383,9 @@ defmodule Samly.IdpData do
       idp_signs_assertions: idp_data.signed_assertion_in_resp,
       trusted_fingerprints: idp_data.fingerprints,
       metadata_uri: Helper.get_metadata_uri(idp_data.base_url, path_segment_idp_id),
-      consume_uri: idp_data.custom_recipient_url || Helper.get_consume_uri(idp_data.base_url, path_segment_idp_id),
+      consume_uri:
+        idp_data.custom_recipient_url ||
+          Helper.get_consume_uri(idp_data.base_url, path_segment_idp_id),
       logout_uri: Helper.get_logout_uri(idp_data.base_url, path_segment_idp_id),
       entity_id: sp_entity_id
     )
