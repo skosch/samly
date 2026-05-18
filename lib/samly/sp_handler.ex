@@ -36,12 +36,12 @@ defmodule Samly.SPHandler do
 
     with {:ok, assertion} <- Helper.decode_idp_auth_resp(sp, saml_encoding, saml_response),
          :ok <- validate_authresp(conn, assertion, relay_state),
-         assertion = %Assertion{assertion | idp_id: idp_id},
+         assertion = %{assertion | idp_id: idp_id},
          conn = conn |> put_private(:samly_assertion, assertion),
          {:halted, %Conn{halted: false} = conn} <- {:halted, pipethrough(conn, pipeline)} do
       updated_assertion = conn.private[:samly_assertion]
       computed = updated_assertion.computed
-      assertion = %Assertion{assertion | computed: computed, idp_id: idp_id}
+      assertion = %{assertion | computed: computed, idp_id: idp_id}
 
       nameid = assertion.subject.name
       assertion_key = {idp_id, nameid}
@@ -53,17 +53,25 @@ defmodule Samly.SPHandler do
       |> put_session("samly_assertion_key", assertion_key)
       |> redirect(302, target_url)
     else
-      {:halted, conn} -> conn
+      {:halted, conn} ->
+        conn
+
       {:error, reason} ->
         case idp do
           %IdpData{debug_mode: true} ->
             conn
             |> put_resp_header("content-type", "text/html")
-            |> send_resp(403, "<html><body><div><h1>access_denied</h1><p><b>Error:</b><br /><pre><code>#{inspect(reason)}</code></pre></p><p><b>Raw Response:</b><br /><pre><code>#{saml_response}</code></pre></p></div></body></html")
+            |> send_resp(
+              403,
+              "<html><body><div><h1>access_denied</h1><p><b>Error:</b><br /><pre><code>#{inspect(reason)}</code></pre></p><p><b>Raw Response:</b><br /><pre><code>#{saml_response}</code></pre></p></div></body></html"
+            )
+
           _ ->
             conn |> send_resp(403, "access_denied #{inspect(reason)}")
         end
-      _ -> conn |> send_resp(403, "access_denied")
+
+      _ ->
+        conn |> send_resp(403, "access_denied")
     end
 
     # rescue

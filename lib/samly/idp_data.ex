@@ -112,7 +112,7 @@ defmodule Samly.IdpData do
   @spec save_idp_config(%IdpData{}, map()) :: %IdpData{}
   defp save_idp_config(idp_data, %{id: id, sp_id: sp_id} = opts_map)
        when is_binary(id) and is_binary(sp_id) do
-    %IdpData{idp_data | id: id, sp_id: sp_id, base_url: Map.get(opts_map, :base_url)}
+    %{idp_data | id: id, sp_id: sp_id, base_url: Map.get(opts_map, :base_url)}
     |> set_metadata(opts_map)
     |> set_pipeline(opts_map)
     |> set_allowed_target_urls(opts_map)
@@ -156,9 +156,9 @@ defmodule Samly.IdpData do
   defp update_esaml_recs(idp_data, service_providers, opts_map) do
     case Map.get(service_providers, idp_data.sp_id) do
       %SpData{} = sp ->
-        idp_data = %IdpData{idp_data | esaml_idp_rec: to_esaml_idp_metadata(idp_data, opts_map)}
-        idp_data = %IdpData{idp_data | esaml_sp_rec: get_esaml_sp(sp, idp_data)}
-        %IdpData{idp_data | valid?: cert_config_ok?(idp_data, sp)}
+        idp_data = %{idp_data | esaml_idp_rec: to_esaml_idp_metadata(idp_data, opts_map)}
+        idp_data = %{idp_data | esaml_sp_rec: get_esaml_sp(sp, idp_data)}
+        %{idp_data | valid?: cert_config_ok?(idp_data, sp)}
 
       _ ->
         Logger.error("[Samly] Unknown/invalid sp_id: #{idp_data.sp_id}")
@@ -271,7 +271,7 @@ defmodule Samly.IdpData do
     md_xml = SweetXml.parse(metadata_xml, xml_opts)
     signing_certs = get_signing_certs(md_xml)
 
-    %IdpData{
+    %{
       idp_data
       | entity_id: get_entity_id(md_xml),
         signed_requests: get_req_signed(md_xml),
