@@ -2,7 +2,6 @@ defmodule Samly.SpData do
   @moduledoc false
 
   require Logger
-  require Samly.Esaml
   alias Samly.SpData
 
   defstruct id: "",

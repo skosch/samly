@@ -1,7 +1,6 @@
 defmodule Samly.AuthHandler do
   @moduledoc false
 
-  require Logger
   import Plug.Conn
   alias Samly.{Assertion, IdpData, Helper, State, Subject}
 

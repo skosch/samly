@@ -21,7 +21,6 @@ defmodule Samly.Provider do
   use GenServer
   require Logger
 
-  require Samly.Esaml
   alias Samly.{State}
 
   @doc false

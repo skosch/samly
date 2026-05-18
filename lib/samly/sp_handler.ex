@@ -69,15 +69,7 @@ defmodule Samly.SPHandler do
           _ ->
             conn |> send_resp(403, "access_denied #{inspect(reason)}")
         end
-
-      _ ->
-        conn |> send_resp(403, "access_denied")
     end
-
-    # rescue
-    #   error ->
-    #     Logger.error("#{inspect error}")
-    #     conn |> send_resp(500, "request_failed")
   end
 
   # IDP-initiated flow auth response
