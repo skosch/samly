@@ -15,7 +15,7 @@ defmodule Samly.Router do
     conn |> send_resp(404, "not_found")
   end
 
-  @frame_ancestors Application.get_env(:samly, :allowed_frame_ancestors)
+  @frame_ancestors Application.compile_env(:samly, :allowed_frame_ancestors)
 
   @csp """
        default-src 'none';
@@ -37,18 +37,18 @@ defmodule Samly.Router do
     |> register_before_send(fn connection ->
       nonce = connection.private[:samly_nonce]
 
-      connection
-      |> put_resp_header("cache-control", "no-cache, no-store, must-revalidate")
-      |> put_resp_header("pragma", "no-cache")
-      |> put_resp_header("content-security-policy", EEx.eval_string(@csp, nonce: nonce))
-      |> put_resp_header("x-xss-protection", "1; mode=block")
-      |> put_resp_header("x-content-type-options", "nosniff")
-      |> then(fn c ->
-          cond do
-            @frame_ancestors -> c
-            true -> put_resp_header(c, "x-frame-options", "SAMEORIGIN")
-          end
-        end)
+      base =
+        connection
+        |> put_resp_header("cache-control", "no-cache, no-store, must-revalidate")
+        |> put_resp_header("pragma", "no-cache")
+        |> put_resp_header("content-security-policy", EEx.eval_string(@csp, nonce: nonce))
+        |> put_resp_header("x-xss-protection", "1; mode=block")
+        |> put_resp_header("x-content-type-options", "nosniff")
+
+      case @frame_ancestors do
+        nil -> put_resp_header(base, "x-frame-options", "SAMEORIGIN")
+        _ -> base
+      end
     end)
   end
 end
