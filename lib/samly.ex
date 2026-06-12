@@ -55,6 +55,9 @@ defmodule Samly do
       {_idp_id, _nameid} = assertion_key ->
         State.get_assertion(conn, assertion_key)
 
+      assertion_key when is_binary(assertion_key) ->
+        State.get_assertion(conn, assertion_key)
+
       _ ->
         nil
     end

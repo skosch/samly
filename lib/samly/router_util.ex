@@ -33,7 +33,7 @@ defmodule Samly.RouterUtil do
     if idp do
       conn |> Conn.put_private(:samly_idp, idp)
     else
-      conn |> Conn.send_resp(403, "invalid_request unknown IdP") |> Conn.halt()
+      Helper.handle_error_response(conn, :unknown_idp, 403, "invalid_request unknown IdP")
     end
   end
 
@@ -47,7 +47,12 @@ defmodule Samly.RouterUtil do
           "[Samly] target_url must be x-www-form-urlencoded: #{inspect(conn.params["target_url"])}"
         )
 
-        conn |> Conn.send_resp(400, "target_url must be x-www-form-urlencoded") |> Conn.halt()
+        Helper.handle_error_response(
+          conn,
+          :invalid_target_url_encoding,
+          400,
+          "target_url must be x-www-form-urlencoded"
+        )
     end
   end
 
@@ -65,19 +70,19 @@ defmodule Samly.RouterUtil do
 
         base_url = URI.to_string(uri)
         idp_id_from = Application.get_env(:samly, :idp_id_from)
+        %IdpData{id: idp_id} = idp_data = conn.private[:samly_idp]
 
         path_segment_idp_id =
           if idp_id_from == :subdomain do
             nil
           else
-            %IdpData{id: idp_id} = conn.private[:samly_idp]
             idp_id
           end
 
         Esaml.esaml_sp(
           sp,
           metadata_uri: Helper.get_metadata_uri(base_url, path_segment_idp_id),
-          consume_uri: Helper.get_consume_uri(base_url, path_segment_idp_id),
+          consume_uri: idp_data.custom_recipient_url || Helper.get_consume_uri(base_url, path_segment_idp_id),
           logout_uri: Helper.get_logout_uri(base_url, path_segment_idp_id)
         )
 

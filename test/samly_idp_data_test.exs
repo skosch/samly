@@ -165,11 +165,23 @@ defmodule SamlyIdpDataTest do
     assert idp_data.valid?
   end
 
-  test "valid-idp-config-12", %{sps: sps} do
+  test "valid-idp-config-12-post-session-cleanup-pipeline", %{sps: sps} do
     idp_config = Map.put(@idp_config1, :post_session_cleanup_pipeline, MyPipeline)
     %IdpData{} = idp_data = IdpData.load_provider(idp_config, sps)
     assert idp_data.valid?
     assert idp_data.post_session_cleanup_pipeline == MyPipeline
+  end
+
+  test "valid-idp-config-12-custom-recipient-url", %{sps: sps} do
+    idp_config = Map.put(@idp_config1, :custom_recipient_url, nil)
+    %IdpData{} = idp_data = IdpData.load_provider(idp_config, sps)
+    assert idp_data.valid?
+    refute idp_data.custom_recipient_url
+
+    idp_config = Map.put(idp_config, :custom_recipient_url, "custom-recipient-url")
+    %IdpData{} = idp_data = IdpData.load_provider(idp_config, sps)
+    assert idp_data.valid?
+    assert idp_data.custom_recipient_url == ~c"custom-recipient-url"
   end
 
   test "url-test-1", %{sps: sps} do
@@ -220,6 +232,20 @@ defmodule SamlyIdpDataTest do
     idp_config = %{@idp_config1 | id: ""}
     %IdpData{} = idp_data = IdpData.load_provider(idp_config, sps)
     refute idp_data.valid?
+  end
+
+  test "invalid idp metadata does not prevent other idps from loading", %{sps: sps} do
+    bad_idp_config = %{
+      id: "bad_idp",
+      sp_id: "sp1",
+      base_url: "http://samly.howto:4003/sso",
+      metadata_file: "test/data/unpadded_cert_idp_metadata.xml"
+    }
+
+    providers = IdpData.load_providers([@idp_config1, bad_idp_config], sps)
+
+    assert Map.has_key?(providers, "idp1")
+    refute Map.has_key?(providers, "bad_idp")
   end
 
   test "invalid-idp-config-2", %{sps: sps} do
