@@ -1,5 +1,6 @@
 defmodule Samly.StateTest do
-  use ExUnit.Case, async: true
+  # async: false because tests call Samly.State.init/1 which writes to shared Application env
+  use ExUnit.Case, async: false
 
   import Plug.Test
   import Plug.Conn
