@@ -60,7 +60,7 @@ defmodule Samly.SPHandler do
 
       conn
       |> configure_session(renew: true)
-      |> put_session_new("samly_assertion_key", assertion_key)
+      |> put_session("samly_assertion_key", assertion_key)
       |> redirect(302, target_url)
     else
       {:halted, conn} ->
@@ -155,13 +155,6 @@ defmodule Samly.SPHandler do
 
   defp auth_target_url(conn, _assertion, _relay_state) do
     get_session(conn, "target_url") || "/"
-  end
-
-  defp put_session_new(conn, key, value) do
-    case get_session(conn, key) do
-      nil -> put_session(conn, key, value)
-      _ -> conn
-    end
   end
 
   def handle_logout_response(conn) do
