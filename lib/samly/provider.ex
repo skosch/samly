@@ -76,6 +76,12 @@ defmodule Samly.Provider do
     Application.put_env(:samly, :service_providers, service_providers)
     Application.put_env(:samly, :identity_providers, identity_providers)
 
+    if map_size(identity_providers) == 0 do
+      Logger.warning(
+        "Samly: no identity providers successfully loaded — all SAML authentication will fail"
+      )
+    end
+
     {:ok, %{}}
   end
 end
