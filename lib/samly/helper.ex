@@ -1,5 +1,6 @@
 defmodule Samly.Helper do
   @moduledoc false
+  require Logger
   require Samly.Esaml
   alias Samly.{Assertion, Esaml, IdpData}
 
@@ -25,8 +26,14 @@ defmodule Samly.Helper do
         conn
 
       pipeline ->
-        conn = pipeline.call(conn, [])
-        if conn.state in [:sent, :chunked, :set_chunked], do: %{conn | halted: true}, else: conn
+        try do
+          conn = pipeline.call(conn, [])
+          if conn.state in [:sent, :chunked, :set_chunked], do: %{conn | halted: true}, else: conn
+        rescue
+          e ->
+            Logger.error("on_error_pipeline raised: #{inspect(e)}")
+            conn
+        end
     end
   end
 
