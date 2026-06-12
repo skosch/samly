@@ -165,6 +165,13 @@ defmodule SamlyIdpDataTest do
     assert idp_data.valid?
   end
 
+  test "valid-idp-config-12", %{sps: sps} do
+    idp_config = Map.put(@idp_config1, :post_session_cleanup_pipeline, MyPipeline)
+    %IdpData{} = idp_data = IdpData.load_provider(idp_config, sps)
+    assert idp_data.valid?
+    assert idp_data.post_session_cleanup_pipeline == MyPipeline
+  end
+
   test "url-test-1", %{sps: sps} do
     idp_config = %{@idp_config1 | metadata_file: "test/data/shibboleth_idp_metadata.xml"}
     %IdpData{} = idp_data = IdpData.load_provider(idp_config, sps)

@@ -26,3 +26,6 @@ mise.toml
 # ignore devbox files
 /.nix-mix/
 /.nix-hex/
+
+# Ignore the output from Elixir Expert LSP
+.expert

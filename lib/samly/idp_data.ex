@@ -16,6 +16,7 @@ defmodule Samly.IdpData do
             metadata_file: nil,
             metadata: nil,
             pre_session_create_pipeline: nil,
+            post_session_cleanup_pipeline: nil,
             use_redirect_for_req: false,
             sign_requests: true,
             sign_metadata: true,
@@ -44,6 +45,7 @@ defmodule Samly.IdpData do
           metadata_file: nil | binary(),
           metadata: nil | binary(),
           pre_session_create_pipeline: nil | module(),
+          post_session_cleanup_pipeline: nil | module(),
           use_redirect_for_req: boolean(),
           sign_requests: boolean(),
           sign_metadata: boolean(),
@@ -206,8 +208,12 @@ defmodule Samly.IdpData do
 
   @spec set_pipeline(%IdpData{}, map()) :: %IdpData{}
   defp set_pipeline(%IdpData{} = idp_data, %{} = opts_map) do
-    pipeline = Map.get(opts_map, :pre_session_create_pipeline)
-    %IdpData{idp_data | pre_session_create_pipeline: pipeline}
+    pre_pipeline = Map.get(opts_map, :pre_session_create_pipeline)
+    post_pipeline = Map.get(opts_map, :post_session_cleanup_pipeline)
+
+    idp_data
+    |> Map.put(:pre_session_create_pipeline, pre_pipeline)
+    |> Map.put(:post_session_cleanup_pipeline, post_pipeline)
   end
 
   defp set_allowed_target_urls(%IdpData{} = idp_data, %{} = opts_map) do

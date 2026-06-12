@@ -1,5 +1,9 @@
 # CHANGELOG
 
+### v1.7.3
++   Switch `esaml` dependency from Hex to [ForwardFinancing](https://github.com/ForwardFinancing/esaml) fork to include XXE vulnerability fix (CVE-2026-XXE)
++   Disables XML entity expansion in all `xmerl_scan:string/2` call sites via `{allow_entities, false}`
+
 ### v1.4.0
 +   remove uri double encoding thanks to @DiaanEngelbrecht
 +   fix esaml initialization thanks to @bopm

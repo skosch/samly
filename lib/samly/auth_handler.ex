@@ -2,9 +2,12 @@ defmodule Samly.AuthHandler do
   @moduledoc false
 
   import Plug.Conn
+  import Samly.RouterUtil, only: [ensure_sp_uris_set: 2, send_saml_request: 5, redirect: 3]
+
+  alias Samly.State.StateUtil
   alias Samly.{Assertion, IdpData, Helper, State, Subject}
 
-  import Samly.RouterUtil, only: [ensure_sp_uris_set: 2, send_saml_request: 5, redirect: 3]
+  require Logger
 
   @sso_init_resp_template """
   <!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Strict//EN\"
@@ -61,10 +64,10 @@ defmodule Samly.AuthHandler do
     target_url = conn.private[:samly_target_url] || "/"
     assertion_key = get_session(conn, "samly_assertion_key")
 
-    case State.get_assertion(conn, assertion_key) do
-      %Assertion{idp_id: ^idp_id} ->
-        conn |> redirect(302, target_url)
-
+    with %Assertion{idp_id: ^idp_id} = assertion <- State.get_assertion(conn, assertion_key),
+         :valid <- StateUtil.validate_login_assertion_expiry(assertion) do
+      redirect(conn, 302, target_url)
+    else
       _ ->
         relay_state = State.gen_id()
 
@@ -84,11 +87,6 @@ defmodule Samly.AuthHandler do
           relay_state
         )
     end
-
-    # rescue
-    #   error ->
-    #     Logger.error("#{inspect error}")
-    #     conn |> send_resp(500, "request_failed")
   end
 
   def send_signout_req(conn) do
@@ -99,36 +97,37 @@ defmodule Samly.AuthHandler do
     target_url = conn.private[:samly_target_url] || "/"
     assertion_key = get_session(conn, "samly_assertion_key")
 
-    case State.get_assertion(conn, assertion_key) do
-      %Assertion{idp_id: ^idp_id, authn: authn, subject: subject} ->
-        session_index = Map.get(authn, "session_index", "")
-        subject_rec = Subject.to_rec(subject)
+    with %Assertion{idp_id: ^idp_id, authn: authn, subject: subject} = assertion <-
+           State.get_assertion(conn, assertion_key),
+         :valid <- StateUtil.validate_logout_assertion_expiry(assertion) do
+      session_index = Map.get(authn, "session_index", "")
+      subject_rec = Subject.to_rec(subject)
 
-        {idp_signout_url, req_xml_frag} =
-          Helper.gen_idp_signout_req(sp, idp_rec, subject_rec, session_index)
+      {idp_signout_url, req_xml_frag} =
+        Helper.gen_idp_signout_req(sp, idp_rec, subject_rec, session_index)
 
-        conn = State.delete_assertion(conn, assertion_key)
-        relay_state = State.gen_id()
+      conn = State.delete_assertion(conn, assertion_key)
+      relay_state = State.gen_id()
 
-        conn
-        |> put_session("target_url", target_url)
-        |> put_session("relay_state", relay_state)
-        |> put_session("idp_id", idp_id)
-        |> delete_session("samly_assertion_key")
-        |> send_saml_request(
-          idp_signout_url,
-          idp.use_redirect_for_req,
-          req_xml_frag,
-          relay_state
-        )
+      conn
+      |> put_session("target_url", target_url)
+      |> put_session("relay_state", relay_state)
+      |> put_session("idp_id", idp_id)
+      |> delete_session("samly_assertion_key")
+      |> send_saml_request(
+        idp_signout_url,
+        idp.use_redirect_for_req,
+        req_xml_frag,
+        relay_state
+      )
+    else
+      :expired ->
+        Logger.info("Assertion has expired and cannot be used to construct logout request.")
+
+        conn |> send_resp(403, "access_denied")
 
       _ ->
         conn |> send_resp(403, "access_denied")
     end
-
-    # rescue
-    #   error ->
-    #     Logger.error("#{inspect error}")
-    #     conn |> send_resp(500, "request_failed")
   end
 end

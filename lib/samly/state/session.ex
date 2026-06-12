@@ -34,8 +34,11 @@ defmodule Samly.State.Session do
     %{key: key} = opts
 
     case Conn.get_session(conn, key) do
-      {^assertion_key, %Assertion{} = assertion} -> validate_assertion_expiry(assertion)
-      _ -> nil
+      {^assertion_key, %Assertion{} = assertion} ->
+        assertion
+
+      _ ->
+        nil
     end
   end
 
@@ -49,19 +52,5 @@ defmodule Samly.State.Session do
   def delete_assertion(conn, _assertion_key, opts) do
     %{key: key} = opts
     Conn.delete_session(conn, key)
-  end
-
-  defp validate_assertion_expiry(
-         %Assertion{subject: %{notonorafter: not_on_or_after}} = assertion
-       ) do
-    now = DateTime.utc_now()
-
-    case DateTime.from_iso8601(not_on_or_after) do
-      {:ok, not_on_or_after, _} ->
-        if DateTime.compare(now, not_on_or_after) == :lt, do: assertion, else: nil
-
-      _ ->
-        nil
-    end
   end
 end

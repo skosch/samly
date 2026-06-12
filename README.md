@@ -183,6 +183,7 @@ config :samly, Samly.Provider,
       base_url: "https://do-good.org/sso",
       metadata_file: "idp1_metadata.xml",
       #pre_session_create_pipeline: MySamlyPipeline,
+      #post_session_cleanup_pipeline: MySamlyLogoutPipeline,
       #use_redirect_for_req: false,
       #sign_requests: true,
       #sign_metadata: true,
@@ -215,6 +216,7 @@ config :samly, Samly.Provider,
 | `metadata_file` | _(mandatory if `metadata` is not set)_ Path to the IdP metadata XML file obtained from the Identity Provider. This will be ignored if `metadata` is non-nil. |
 | `metadata` | _(mandatory if `metadata_file` is not set))_ String containing IdP metadata XML obtained from the Identity Provider. |
 | `pre_session_create_pipeline` | _(optional)_ Check the customization section. |
+| `post_session_cleanup_pipeline` | _(optional)_ Check the customization section. |
 | `use_redirect_for_req` | _(optional)_ Default is `false`. When this is `false`, `Samly` will POST to the IdP SAML endpoints. |
 | `sign_requests`, `sign_metadata` | _(optional)_ Default is `true`. |
 | `signed_assertion_in_resp`, `signed_envelopes_in_resp` | _(optional)_ Default is `true`. When `true`, `Samly` expects the requests and responses from IdP to be signed. |
@@ -287,7 +289,10 @@ the user is not authenticated.
 `Samly` allows you to specify a Plug Pipeline if you need more control over
 the authenticated user's attributes and/or do a Just-in-time user creation.
 The Plug Pipeline is invoked after the user has successfully authenticated
-with the IdP but before a session is created.
+with the IdP but before a session is created for login requests.
+
+`Samly` also allows you to specify a Plug Pipeline which is exectured before the logout request is finalized,
+allowing you to hook into the logout flow and perform business related cleanup rules or collect metrics.
 
 This is just a vanilla Plug Pipeline. The SAML assertion from
 the IdP is made available in the Plug connection as a "private".
@@ -333,6 +338,24 @@ defmodule MySamlyPipeline do
     conn
   end
 end
+
+defmodule MySamlyLogoutPipeline do
+  use Plug.Builder
+  alias Samly.{Assertion}
+
+  plug :cleanup
+
+  def cleanup(conn, _opts) do
+    # Remove additional user sessions or clean ETS tables related to user.
+
+    conn
+
+    # If you have an error condition:
+    # conn
+    # |>  send_resp(404, "attribute mapping failed")
+    # |>  halt()
+  end
+end
 ```
 
 Make this pipeline available in your config:
@@ -343,6 +366,7 @@ config :samly, Samly.Provider,
     %{
       # ...
       pre_session_create_pipeline: MySamlyPipeline,
+      post_session_cleanup_pipeline: MySamlyLogoutPipeline
       # ...    
     }
   ]
