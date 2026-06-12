@@ -86,11 +86,11 @@ defmodule Samly.Helper do
   end
 
   # Adds ForceAuthn="true" to the xmlElement record's attributes list.
-  # xmlElement tuple layout (1-indexed): name, expanded_name, nsinfo, namespace,
-  # parents, pos, attributes(7), content(8), language, xmlbase, elementdef
+  # xmlElement tuple layout (1-indexed): tag_atom(1), name(2), expanded_name(3), nsinfo(4),
+  # namespace(5), parents(6), pos(7), attributes(8), content(9), language(10), xmlbase(11), elementdef(12)
   @force_authn_attr {:xmlAttribute, :"ForceAuthn", [], [], [], [], 1, [], ~c"true", false}
-  defp add_force_authn({:xmlElement, _, _, _, _, _, attrs, _, _, _, _} = elem) do
-    :erlang.setelement(7, elem, attrs ++ [@force_authn_attr])
+  defp add_force_authn({:xmlElement, _, _, _, _, _, _, attrs, _, _, _, _} = elem) do
+    :erlang.setelement(8, elem, attrs ++ [@force_authn_attr])
   end
 
   def gen_idp_signout_req(sp, idp_metadata, subject_rec, session_index) do
