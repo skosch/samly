@@ -182,7 +182,7 @@ defmodule Samly.SPHandler do
 
     saml_encoding = params["SAMLEncoding"]
     saml_response = params["SAMLResponse"]
-    relay_state = params["RelayState"] |> URI.decode_www_form()
+    relay_state = params["RelayState"] |> safe_decode_www_form()
 
     with {:ok, _payload} <- Helper.decode_idp_signout_resp(sp, saml_encoding, saml_response),
          ^relay_state when relay_state != nil <- get_session(conn, "relay_state"),
