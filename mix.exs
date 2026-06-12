@@ -36,7 +36,6 @@ defmodule Samly.Mixfile do
       {:plug, "~> 1.6"},
       {:esaml, "~> 4.3"},
       {:sweet_xml, "~> 0.6"},
-      {:redix, "~> 1.1", optional: true},
       {:dialyxir, "~> 1.0", only: [:dev], runtime: false},
       {:ex_doc, "~> 0.31", only: :dev, runtime: false},
       {:mix_test_watch, "~> 1.1", only: [:dev, :test], runtime: false},
