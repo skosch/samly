@@ -15,12 +15,20 @@ defmodule Samly.Router do
     conn |> send_resp(404, "not_found")
   end
 
+  @frame_ancestors Application.get_env(:samly, :allowed_frame_ancestors)
+
   @csp """
        default-src 'none';
        script-src 'self' 'nonce-<%= nonce %>' 'report-sample';
        img-src 'self' 'report-sample';
        report-to /sso/csp-report;
        """
+       |> then(fn csp ->
+            case @frame_ancestors do
+              [_ | _] -> csp <> " frame-ancestors #{Enum.join(@frame_ancestors, " ")};"
+              _ -> csp
+            end
+          end)
        |> String.replace("\n", " ")
 
   defp secure_samly(conn, _opts) do
@@ -32,10 +40,15 @@ defmodule Samly.Router do
       connection
       |> put_resp_header("cache-control", "no-cache, no-store, must-revalidate")
       |> put_resp_header("pragma", "no-cache")
-      |> put_resp_header("x-frame-options", "SAMEORIGIN")
       |> put_resp_header("content-security-policy", EEx.eval_string(@csp, nonce: nonce))
       |> put_resp_header("x-xss-protection", "1; mode=block")
       |> put_resp_header("x-content-type-options", "nosniff")
+      |> then(fn c ->
+          cond do
+            @frame_ancestors -> c
+            true -> put_resp_header(c, "x-frame-options", "SAMEORIGIN")
+          end
+        end)
     end)
   end
 end
