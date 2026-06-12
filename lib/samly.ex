@@ -40,6 +40,10 @@ defmodule Samly do
   computed/derived attributes. Returns `nil` if the current Plug session
   is not authenticated.
 
+  > **Warning:** This function returns the assertion regardless of expiry status.
+  > For authorization checks, prefer `get_active_assertion/1` which only returns
+  > non-expired assertions.
+
   ## Parameters
 
   +   `conn` - Plug connection
@@ -47,7 +51,7 @@ defmodule Samly do
   ## Examples
 
       # When there is an authenticated SAML assertion
-      %Assertion{} = Samly.get_active_assertion()
+      %Assertion{} = Samly.get_assertion(conn)
   """
   @spec get_assertion(Conn.t()) :: nil | Assertion.t()
   def get_assertion(conn) do
