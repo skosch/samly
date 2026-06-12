@@ -22,3 +22,7 @@ mise.toml
 .sobelow
 /docs/
 /.elixir_ls/
+
+# ignore devbox files
+/.nix-mix/
+/.nix-hex/

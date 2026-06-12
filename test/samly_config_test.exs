@@ -33,5 +33,8 @@ defmodule SamlyConfigTest do
 
     assert Application.get_env(:samly, :identity_providers) ==
              %{"idp1" => Samly.IdpData.load_provider(@idp_config, sps)}
+
+    Application.delete_env(:samly, :service_providers)
+    Application.delete_env(:samly, :identity_providers)
   end
 end

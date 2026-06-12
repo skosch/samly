@@ -1,6 +1,5 @@
 defmodule Samly.Helper do
   @moduledoc false
-
   require Samly.Esaml
   alias Samly.{Assertion, Esaml, IdpData}
 

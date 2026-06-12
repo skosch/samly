@@ -24,7 +24,9 @@ defmodule Samly.RouterUtil do
         end
       end
 
-    idp = idp_id && Helper.get_idp(idp_id)
+    config = Application.get_env(:samly, :config_provider, Samly.ApplicationConfig)
+
+    idp = idp_id && config.get_idp(conn, idp_id)
 
     if idp do
       conn |> Conn.put_private(:samly_idp, idp)
