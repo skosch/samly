@@ -125,7 +125,7 @@ defmodule Samly.AuthHandler do
       :expired ->
         Logger.info("Assertion has expired and cannot be used to construct logout request.")
 
-        conn |> send_resp(403, "access_denied")
+        Helper.handle_error_response(conn, :expired, 403, "access_denied")
 
       _ ->
         conn |> redirect(302, target_url)
