@@ -46,7 +46,7 @@ defmodule Samly.Router do
         |> put_resp_header("x-content-type-options", "nosniff")
 
       case @frame_ancestors do
-        nil -> put_resp_header(base, "x-frame-options", "SAMEORIGIN")
+        fa when fa in [nil, []] -> put_resp_header(base, "x-frame-options", "SAMEORIGIN")
         _ -> base
       end
     end)
