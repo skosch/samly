@@ -43,6 +43,7 @@ defmodule Samly.State.Redis do
   """
 
   alias Samly.Assertion
+  require Logger
 
   @behaviour Samly.State.Store
 
@@ -94,9 +95,19 @@ defmodule Samly.State.Redis do
         nil
 
       {:ok, binary} when is_binary(binary) ->
-        binary
-        |> Base.decode64!()
-        |> :erlang.binary_to_term([:safe])
+        result =
+          binary
+          |> Base.decode64!()
+          |> :erlang.binary_to_term([:safe])
+
+        case result do
+          %Samly.Assertion{} = assertion ->
+            assertion
+
+          _ ->
+            Logger.error("Redis returned unexpected term for assertion key #{inspect(redis_key)}")
+            nil
+        end
 
       {:error, reason} ->
         raise "Failed to get assertion from Redis: #{inspect(reason)}"
