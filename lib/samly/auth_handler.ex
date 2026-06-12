@@ -63,6 +63,7 @@ defmodule Samly.AuthHandler do
 
     target_url = conn.private[:samly_target_url] || "/"
     assertion_key = get_session(conn, "samly_assertion_key")
+    force_authn = Map.get(idp, :force_authn, false)
 
     with %Assertion{idp_id: ^idp_id} = assertion <- State.get_assertion(conn, assertion_key),
          :valid <- StateUtil.validate_login_assertion_expiry(assertion) do
@@ -72,7 +73,7 @@ defmodule Samly.AuthHandler do
         relay_state = State.gen_id()
 
         {idp_signin_url, req_xml_frag} =
-          Helper.gen_idp_signin_req(sp, idp_rec, Map.get(idp, :nameid_format))
+          Helper.gen_idp_signin_req(sp, idp_rec, Map.get(idp, :nameid_format), force_authn)
 
         conn
         |> State.delete_assertion(assertion_key)
