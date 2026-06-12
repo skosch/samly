@@ -101,7 +101,7 @@ defmodule Samly.IdpData do
 
   @type id :: binary()
 
-  @spec load_providers(map(), map()) :: %IdpData{}
+  @spec from_config(map(), map()) :: nil | %IdpData{}
   def from_config(sp_config, idp_config) do
     service_providers = Samly.SpData.load_providers([sp_config])
     config_map = load_providers([idp_config], service_providers)
