@@ -1,5 +1,28 @@
 # CHANGELOG
 
+### v1.4.0
++   remove uri double encoding thanks to @DiaanEngelbrecht
++   fix esaml initialization thanks to @bopm
++   check and enforce session expiration (CVE-2024-25718) thanks to @idyll
+
+### v1.3.0
++   Added dialyzer checks
++   Changed internal function layout to report errors more granularly
++   Verified with updates to esaml dependency
++   Client can refresh the runtime provider config without restarting the app from [bernardd](https://github.com/dropbox/samly/pull/7)
+
+### v1.2.0
++   Metadata can be specified directly in the IdP config rather than requiring a file
++   Bumps dependencies
+
+### v1.1.0
++   Updated minor version due to dependency updates requiring potential language version bumps
++   Removed Inch CI
++   Updated dependencies for project
++   Removed strict required dependency on `sweet_xml`
++   Use updated version of `esaml` to reduce strict requirements on `cowboy`
++   Updated license copyright
+
 ### v1.0.0
 
 +   `target_url` query parameter for the sign-in/sign-out requests must be
@@ -58,7 +81,7 @@
 
 ### v0.9.1
 
-+   Remove the need for supplying certicate and key files if the requests are
++   Remove the need for supplying certificate and key files if the requests are
     not signed (Issue #16). Useful during development when the corresponding
     Identity Provider is setup for unsigned requests/responses. Use signing
     for production deployments. The defaults expect signed requests/responses.

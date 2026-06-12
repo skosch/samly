@@ -14,6 +14,7 @@ defmodule Samly.IdpData do
             sp_id: "",
             base_url: nil,
             metadata_file: nil,
+            metadata: nil,
             pre_session_create_pipeline: nil,
             use_redirect_for_req: false,
             sign_requests: true,
@@ -22,6 +23,7 @@ defmodule Samly.IdpData do
             signed_envelopes_in_resp: true,
             allow_idp_initiated_flow: false,
             allowed_target_urls: [],
+            debug_mode: false,
             entity_id: "",
             signed_requests: "",
             certs: [],
@@ -40,6 +42,7 @@ defmodule Samly.IdpData do
           sp_id: binary(),
           base_url: nil | binary(),
           metadata_file: nil | binary(),
+          metadata: nil | binary(),
           pre_session_create_pipeline: nil | module(),
           use_redirect_for_req: boolean(),
           sign_requests: boolean(),
@@ -48,6 +51,7 @@ defmodule Samly.IdpData do
           signed_envelopes_in_resp: boolean(),
           allow_idp_initiated_flow: boolean(),
           allowed_target_urls: nil | [binary()],
+          debug_mode: boolean(),
           entity_id: binary(),
           signed_requests: binary(),
           certs: certs(),
@@ -57,8 +61,8 @@ defmodule Samly.IdpData do
           slo_post_url: url(),
           nameid_format: nameid_format(),
           fingerprints: [binary()],
-          esaml_idp_rec: :esaml_idp_metadata,
-          esaml_sp_rec: :esaml_sp,
+          esaml_idp_rec: :esaml.idp_metadata(),
+          esaml_sp_rec: :esaml.sp(),
           valid?: boolean()
         }
 
@@ -99,7 +103,7 @@ defmodule Samly.IdpData do
   def load_provider(idp_config, service_providers) do
     %IdpData{}
     |> save_idp_config(idp_config)
-    |> load_metadata(idp_config)
+    |> load_metadata()
     |> override_nameid_format(idp_config)
     |> update_esaml_recs(service_providers, idp_config)
     |> verify_slo_url()
@@ -108,8 +112,8 @@ defmodule Samly.IdpData do
   @spec save_idp_config(%IdpData{}, map()) :: %IdpData{}
   defp save_idp_config(idp_data, %{id: id, sp_id: sp_id} = opts_map)
        when is_binary(id) and is_binary(sp_id) do
-    %IdpData{idp_data | id: id, sp_id: sp_id, base_url: Map.get(opts_map, :base_url)}
-    |> set_metadata_file(opts_map)
+    %{idp_data | id: id, sp_id: sp_id, base_url: Map.get(opts_map, :base_url)}
+    |> set_metadata(opts_map)
     |> set_pipeline(opts_map)
     |> set_allowed_target_urls(opts_map)
     |> set_boolean_attr(opts_map, :use_redirect_for_req)
@@ -118,41 +122,43 @@ defmodule Samly.IdpData do
     |> set_boolean_attr(opts_map, :signed_assertion_in_resp)
     |> set_boolean_attr(opts_map, :signed_envelopes_in_resp)
     |> set_boolean_attr(opts_map, :allow_idp_initiated_flow)
+    |> set_boolean_attr(opts_map, :debug_mode)
   end
 
-  @spec load_metadata(%IdpData{}, map()) :: %IdpData{}
-  defp load_metadata(idp_data, _opts_map) do
-    with {:reading, {:ok, raw_xml}} <- {:reading, File.read(idp_data.metadata_file)},
-         {:parsing, {:ok, idp_data}} <- {:parsing, from_xml(raw_xml, idp_data)} do
-      idp_data
-    else
-      {:reading, {:error, reason}} ->
-        Logger.error(
-          "[Samly] Failed to read metadata_file [#{inspect(idp_data.metadata_file)}]: #{
-            inspect(reason)
-          }"
-        )
+  @spec load_metadata(%IdpData{}) :: %IdpData{}
+  defp load_metadata(idp_data = %IdpData{metadata: metadata}) when not is_nil(metadata),
+    do: from_xml(metadata, idp_data)
 
-        idp_data
+  defp load_metadata(idp_data = %IdpData{metadata_file: metadata_file})
+       when not is_nil(metadata_file) do
+    case File.read(idp_data.metadata_file) do
+      {:ok, metadata} ->
+        load_metadata(%{idp_data | metadata: metadata})
 
-      {:parsing, {:error, reason}} ->
+      {:error, reason} ->
         Logger.error(
-          "[Samly] Invalid metadata_file content [#{inspect(idp_data.metadata_file)}]: #{
-            inspect(reason)
-          }"
+          "[Samly] Failed to read metadata_file [#{inspect(idp_data.metadata_file)}]: #{inspect(reason)}"
         )
 
         idp_data
     end
   end
 
+  defp load_metadata(idp_data) do
+    Logger.error(
+      "[Samly] Either `metadata` or `metadata_file` must be specified in the IdP configuration"
+    )
+
+    idp_data
+  end
+
   @spec update_esaml_recs(%IdpData{}, %{required(id()) => %SpData{}}, map()) :: %IdpData{}
   defp update_esaml_recs(idp_data, service_providers, opts_map) do
     case Map.get(service_providers, idp_data.sp_id) do
       %SpData{} = sp ->
-        idp_data = %IdpData{idp_data | esaml_idp_rec: to_esaml_idp_metadata(idp_data, opts_map)}
-        idp_data = %IdpData{idp_data | esaml_sp_rec: get_esaml_sp(sp, idp_data)}
-        %IdpData{idp_data | valid?: cert_config_ok?(idp_data, sp)}
+        idp_data = %{idp_data | esaml_idp_rec: to_esaml_idp_metadata(idp_data, opts_map)}
+        idp_data = %{idp_data | esaml_sp_rec: get_esaml_sp(sp, idp_data)}
+        %{idp_data | valid?: cert_config_ok?(idp_data, sp)}
 
       _ ->
         Logger.error("[Samly] Unknown/invalid sp_id: #{idp_data.sp_id}")
@@ -174,7 +180,7 @@ defmodule Samly.IdpData do
   @spec verify_slo_url(%IdpData{}) :: %IdpData{}
   defp verify_slo_url(%IdpData{} = idp_data) do
     if idp_data.valid? && idp_data.slo_redirect_url == nil && idp_data.slo_post_url == nil do
-      Logger.warn("[Samly] SLO Endpoint missing in [#{inspect(idp_data.metadata_file)}]")
+      Logger.warning("[Samly] SLO Endpoint missing in [#{inspect(idp_data.metadata_file)}]")
     end
 
     idp_data
@@ -182,9 +188,13 @@ defmodule Samly.IdpData do
 
   @default_metadata_file "idp_metadata.xml"
 
-  @spec set_metadata_file(%IdpData{}, map()) :: %IdpData{}
-  defp set_metadata_file(%IdpData{} = idp_data, %{} = opts_map) do
-    %IdpData{idp_data | metadata_file: Map.get(opts_map, :metadata_file, @default_metadata_file)}
+  @spec set_metadata(%IdpData{}, map()) :: %IdpData{}
+  defp set_metadata(%IdpData{} = idp_data, %{} = opts_map) do
+    %IdpData{
+      idp_data
+      | metadata_file: Map.get(opts_map, :metadata_file, @default_metadata_file),
+        metadata: opts_map[:metadata]
+    }
   end
 
   @spec set_pipeline(%IdpData{}, map()) :: %IdpData{}
@@ -214,28 +224,26 @@ defmodule Samly.IdpData do
           to_charlist(format)
 
         :email ->
-          'urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress'
+          ~c"urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress"
 
         :x509 ->
-          'urn:oasis:names:tc:SAML:1.1:nameid-format:X509SubjectName'
+          ~c"urn:oasis:names:tc:SAML:1.1:nameid-format:X509SubjectName"
 
         :windows ->
-          'urn:oasis:names:tc:SAML:1.1:nameid-format:WindowsDomainQualifiedName'
+          ~c"urn:oasis:names:tc:SAML:1.1:nameid-format:WindowsDomainQualifiedName"
 
         :krb ->
-          'urn:oasis:names:tc:SAML:2.0:nameid-format:kerberos'
+          ~c"urn:oasis:names:tc:SAML:2.0:nameid-format:kerberos"
 
         :persistent ->
-          'urn:oasis:names:tc:SAML:2.0:nameid-format:persistent'
+          ~c"urn:oasis:names:tc:SAML:2.0:nameid-format:persistent"
 
         :transient ->
-          'urn:oasis:names:tc:SAML:2.0:nameid-format:transient'
+          ~c"urn:oasis:names:tc:SAML:2.0:nameid-format:transient"
 
         invalid_nameid_format ->
           Logger.error(
-            "[Samly] invalid nameid_format [#{inspect(idp_data.metadata_file)}]: #{
-              inspect(invalid_nameid_format)
-            }"
+            "[Samly] invalid nameid_format [#{inspect(idp_data.metadata_file)}]: #{inspect(invalid_nameid_format)}"
           )
 
           idp_data.nameid_format
@@ -251,8 +259,8 @@ defmodule Samly.IdpData do
     if is_boolean(v), do: Map.put(idp_data, attr_name, v), else: idp_data
   end
 
-  @spec from_xml(binary, %IdpData{}) :: {:ok, %IdpData{}}
-  def from_xml(metadata_xml, idp_data) when is_binary(metadata_xml) do
+  @spec from_xml(binary, %IdpData{}) :: %IdpData{}
+  defp from_xml(metadata_xml, idp_data) when is_binary(metadata_xml) do
     xml_opts = [
       space: :normalize,
       namespace_conformant: true,
@@ -263,19 +271,18 @@ defmodule Samly.IdpData do
     md_xml = SweetXml.parse(metadata_xml, xml_opts)
     signing_certs = get_signing_certs(md_xml)
 
-    {:ok,
-     %IdpData{
-       idp_data
-       | entity_id: get_entity_id(md_xml),
-         signed_requests: get_req_signed(md_xml),
-         certs: signing_certs,
-         fingerprints: idp_cert_fingerprints(signing_certs),
-         sso_redirect_url: get_sso_redirect_url(md_xml),
-         sso_post_url: get_sso_post_url(md_xml),
-         slo_redirect_url: get_slo_redirect_url(md_xml),
-         slo_post_url: get_slo_post_url(md_xml),
-         nameid_format: get_nameid_format(md_xml)
-     }}
+    %{
+      idp_data
+      | entity_id: get_entity_id(md_xml),
+        signed_requests: get_req_signed(md_xml),
+        certs: signing_certs,
+        fingerprints: idp_cert_fingerprints(signing_certs),
+        sso_redirect_url: get_sso_redirect_url(md_xml),
+        sso_post_url: get_sso_post_url(md_xml),
+        slo_redirect_url: get_slo_redirect_url(md_xml),
+        slo_post_url: get_slo_post_url(md_xml),
+        nameid_format: get_nameid_format(md_xml)
+    }
   end
 
   # @spec to_esaml_idp_metadata(IdpData.t(), map()) :: :esaml_idp_metadata
@@ -357,12 +364,12 @@ defmodule Samly.IdpData do
     )
   end
 
-  @spec get_entity_id(:xmlElement) :: binary()
+  @spec get_entity_id(SweetXml.xmlElement()) :: binary()
   def get_entity_id(md_elem) do
     md_elem |> xpath(@entity_id_selector |> add_ns()) |> hd() |> String.trim()
   end
 
-  @spec get_nameid_format(:xmlElement) :: nameid_format()
+  @spec get_nameid_format(SweetXml.xmlElement()) :: nameid_format()
   def get_nameid_format(md_elem) do
     case get_data(md_elem, @nameid_format_selector) do
       "" -> :unknown
@@ -370,16 +377,16 @@ defmodule Samly.IdpData do
     end
   end
 
-  @spec get_req_signed(:xmlElement) :: binary()
+  @spec get_req_signed(SweetXml.xmlElement()) :: binary()
   def get_req_signed(md_elem), do: get_data(md_elem, @req_signed_selector)
 
-  @spec get_signing_certs(:xmlElement) :: certs()
+  @spec get_signing_certs(SweetXml.xmlElement()) :: certs()
   def get_signing_certs(md_elem), do: get_certs(md_elem, @signing_keys_selector)
 
-  @spec get_enc_certs(:xmlElement) :: certs()
+  @spec get_enc_certs(SweetXml.xmlElement()) :: certs()
   def get_enc_certs(md_elem), do: get_certs(md_elem, @enc_keys_selector)
 
-  @spec get_certs(:xmlElement, %SweetXpath{}) :: certs()
+  @spec get_certs(SweetXml.xmlElement(), %SweetXpath{}) :: certs()
   defp get_certs(md_elem, key_selector) do
     md_elem
     |> xpath(key_selector |> add_ns())
@@ -394,19 +401,19 @@ defmodule Samly.IdpData do
     end)
   end
 
-  @spec get_sso_redirect_url(:xmlElement) :: url()
+  @spec get_sso_redirect_url(SweetXml.xmlElement()) :: url()
   def get_sso_redirect_url(md_elem), do: get_url(md_elem, @sso_redirect_url_selector)
 
-  @spec get_sso_post_url(:xmlElement) :: url()
+  @spec get_sso_post_url(SweetXml.xmlElement()) :: url()
   def get_sso_post_url(md_elem), do: get_url(md_elem, @sso_post_url_selector)
 
-  @spec get_slo_redirect_url(:xmlElement) :: url()
+  @spec get_slo_redirect_url(SweetXml.xmlElement()) :: url()
   def get_slo_redirect_url(md_elem), do: get_url(md_elem, @slo_redirect_url_selector)
 
-  @spec get_slo_post_url(:xmlElement) :: url()
+  @spec get_slo_post_url(SweetXml.xmlElement()) :: url()
   def get_slo_post_url(md_elem), do: get_url(md_elem, @slo_post_url_selector)
 
-  @spec get_url(:xmlElement, %SweetXpath{}) :: url()
+  @spec get_url(SweetXml.xmlElement(), %SweetXpath{}) :: url()
   defp get_url(md_elem, selector) do
     case get_data(md_elem, selector) do
       "" -> nil
@@ -414,7 +421,7 @@ defmodule Samly.IdpData do
     end
   end
 
-  @spec get_data(:xmlElement, %SweetXpath{}) :: binary()
+  @spec get_data(SweetXml.xmlElement(), %SweetXpath{}) :: binary()
   def get_data(md_elem, selector) do
     md_elem |> xpath(selector |> add_ns()) |> String.trim()
   end

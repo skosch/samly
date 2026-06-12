@@ -21,7 +21,6 @@ defmodule Samly.Provider do
   use GenServer
   require Logger
 
-  require Samly.Esaml
   alias Samly.{State}
 
   @doc false
@@ -48,7 +47,7 @@ defmodule Samly.Provider do
           value
 
         unknown ->
-          Logger.warn(
+          Logger.warning(
             "[Samly] invalid_data idp_id_from: #{inspect(unknown)}. Using :path_segment"
           )
 
@@ -56,6 +55,17 @@ defmodule Samly.Provider do
       end
 
     Application.put_env(:samly, :idp_id_from, idp_id_from)
+    :esaml_util.start_ets()
+
+    refresh_providers()
+  end
+
+  @doc """
+  Refresh the provider configuration, allowing runtime-configuration to be applied after
+  application start.
+  """
+  def refresh_providers do
+    opts = Application.get_env(:samly, Samly.Provider, [])
 
     service_providers = Samly.SpData.load_providers(opts[:service_providers] || [])
 
