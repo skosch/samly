@@ -221,9 +221,14 @@ defmodule Samly.SPHandler do
 
     sp = ensure_sp_uris_set(sp_rec, conn)
 
-    saml_encoding = conn.body_params["SAMLEncoding"]
-    saml_request = conn.body_params["SAMLRequest"]
-    relay_state = conn.body_params["RelayState"] |> safe_decode_www_form()
+    params = case conn.method do
+      "GET" -> conn.params
+      "POST" -> conn.body_params
+    end
+
+    saml_encoding = params["SAMLEncoding"]
+    saml_request = params["SAMLRequest"]
+    relay_state = params["RelayState"] |> safe_decode_www_form()
 
     with {:ok, payload} <- Helper.decode_idp_signout_req(sp, saml_encoding, saml_request),
          {:halted, %Conn{halted: false} = conn} <- {:halted, pipethrough(conn, pipeline)} do
