@@ -169,7 +169,6 @@ defmodule Samly.State.Redis do
     end
   end
 
-  defp build_redis_key(prefix, {idp_id, name_id}) do
-    "#{prefix}#{idp_id}:#{name_id}"
-  end
+  defp build_redis_key(prefix, key) when is_binary(key), do: "#{prefix}binary:#{key}"
+  defp build_redis_key(prefix, {idp_id, name_id}), do: "#{prefix}#{idp_id}:#{name_id}"
 end

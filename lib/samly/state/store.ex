@@ -22,9 +22,9 @@ defmodule Samly.State.Store do
 
   @typedoc """
   The `name_id` should not be used independent of the `idp_id`. It is within the scope of `idp_id`.
-  Together these form the assertion key.
+  Together these form the assertion key. Binary keys are also supported for custom integrations.
   """
-  @type assertion_key :: {idp_id(), name_id()}
+  @type assertion_key :: {idp_id(), name_id()} | binary()
 
   @doc """
   Initializes the store.
