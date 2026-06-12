@@ -83,7 +83,7 @@ defmodule Samly.RouterUtil do
           sp,
           metadata_uri: Helper.get_metadata_uri(base_url, path_segment_idp_id),
           consume_uri: idp_data.custom_recipient_url || Helper.get_consume_uri(base_url, path_segment_idp_id),
-          logout_uri: Helper.get_logout_uri(base_url, path_segment_idp_id)
+          logout_uri: idp_data.custom_logout_url || Helper.get_logout_uri(base_url, path_segment_idp_id)
         )
 
       _ ->

@@ -184,6 +184,22 @@ defmodule SamlyIdpDataTest do
     assert idp_data.custom_recipient_url == ~c"custom-recipient-url"
   end
 
+  test "custom_logout_url defaults to nil", %{sps: sps} do
+    %IdpData{} = idp_data = IdpData.load_provider(@idp_config1, sps)
+    assert idp_data.valid?
+    refute idp_data.custom_logout_url
+  end
+
+  test "custom_logout_url is stored as charlist when set", %{sps: sps} do
+    idp_config = Map.put(@idp_config1, :custom_logout_url, "https://shibboleth.example.org/idp/profile/SAML2/Redirect/SLO")
+    %IdpData{} = idp_data = IdpData.load_provider(idp_config, sps)
+    assert idp_data.valid?
+    assert idp_data.custom_logout_url == ~c"https://shibboleth.example.org/idp/profile/SAML2/Redirect/SLO"
+
+    Esaml.esaml_sp(logout_uri: logout_uri) = idp_data.esaml_sp_rec
+    assert logout_uri == ~c"https://shibboleth.example.org/idp/profile/SAML2/Redirect/SLO"
+  end
+
   test "url-test-1", %{sps: sps} do
     idp_config = %{@idp_config1 | metadata_file: "test/data/shibboleth_idp_metadata.xml"}
     %IdpData{} = idp_data = IdpData.load_provider(idp_config, sps)
