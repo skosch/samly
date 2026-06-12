@@ -8,7 +8,7 @@ defmodule Samly.RouterUtil do
 
   @subdomain_re ~r/^(?<subdomain>([^.]+))?\./
 
-  def check_idp_id(%Conn{private: %{samly_idp: %IdpData{}}} = conn, _opts), do: conn
+  def check_idp_id(%Conn{private: %{samly_idp: %IdpData{valid?: true}}} = conn, _opts), do: conn
 
   def check_idp_id(conn, _opts) do
     idp_id_from = Application.get_env(:samly, :idp_id_from)
@@ -29,6 +29,12 @@ defmodule Samly.RouterUtil do
     config = Application.get_env(:samly, :config_provider, Samly.ApplicationConfig)
 
     idp = idp_id && config.get_idp(conn, idp_id)
+
+    idp =
+      case idp do
+        %IdpData{valid?: false} -> nil
+        other -> other
+      end
 
     if idp do
       conn |> Conn.put_private(:samly_idp, idp)
