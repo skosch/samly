@@ -1,7 +1,7 @@
 defmodule SamlyHelperTest do
   use ExUnit.Case
   require Samly.Esaml
-  alias Samly.{Esaml, Helper, IdpData, SpData}
+  alias Samly.{Helper, IdpData, SpData}
 
   @sp_config %{
     id: "sp1",
