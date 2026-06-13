@@ -89,6 +89,51 @@ defmodule SamlyHelperTest do
     end
   end
 
+  describe "gen_idp_signin_req with sign_requests: true and force_authn: true" do
+    setup do
+      sp_data = SpData.load_provider(@sp_config)
+      sps = %{sp_data.id => sp_data}
+
+      idp_config = %{@idp_config | sign_requests: true, sign_metadata: true}
+      idp_data = IdpData.load_provider(idp_config, sps)
+      [idp_data: idp_data]
+    end
+
+    test "ForceAuthn is inside the signed element (signature still verifies)", %{
+      idp_data: idp_data
+    } do
+      assert idp_data.valid?
+
+      {_url, xml_frag} =
+        Helper.gen_idp_signin_req(
+          idp_data.esaml_sp_rec,
+          idp_data.esaml_idp_rec,
+          idp_data.nameid_format,
+          true
+        )
+
+      exported = :xmerl.export_simple([xml_frag], :xmerl_xml) |> IO.iodata_to_binary()
+      assert String.contains?(exported, "ForceAuthn")
+      assert String.contains?(exported, "ds:Signature")
+
+      # The crux of the fix: ForceAuthn was added before signing, so the digest
+      # over the element still matches. (If it were appended after signing, this
+      # would return {:error, :bad_digest}.)
+      assert :ok = :xmerl_dsig.verify(xml_frag, :any)
+    end
+  end
+
+  describe "decode_idp_auth_resp/4 payload guard" do
+    test "rejects an oversized SAML payload without attempting to inflate it", %{
+      idp_data: idp_data
+    } do
+      oversized = String.duplicate("A", 256 * 1024 + 1)
+
+      assert {:error, :payload_too_large} =
+               Helper.decode_idp_auth_resp(idp_data.esaml_sp_rec, "", oversized)
+    end
+  end
+
   describe "get_request_id/1" do
     test "returns the ID attribute of a generated AuthnRequest", %{idp_data: idp_data} do
       {_url, xml_frag} =

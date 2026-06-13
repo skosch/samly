@@ -88,8 +88,28 @@ defmodule Samly.Helper do
 
   def gen_idp_signin_req(sp, idp_metadata, nameid_format, true) do
     idp_signin_url = Esaml.esaml_idp_metadata(idp_metadata, :login_location)
-    xml_frag = :esaml_sp.generate_authn_request(idp_signin_url, sp, nameid_format)
-    {idp_signin_url, add_force_authn(xml_frag)}
+
+    # ForceAuthn must be part of the element *before* it is signed, otherwise the
+    # signature digest no longer matches and a signature-checking IdP rejects the
+    # request. esaml signs inside generate_authn_request, so generate an unsigned
+    # request, inject ForceAuthn, then sign it ourselves when signing is enabled.
+    unsigned_sp = Esaml.esaml_sp(sp, sp_sign_requests: false)
+
+    xml_frag =
+      idp_signin_url
+      |> :esaml_sp.generate_authn_request(unsigned_sp, nameid_format)
+      |> add_force_authn()
+      |> maybe_sign_request(sp)
+
+    {idp_signin_url, xml_frag}
+  end
+
+  defp maybe_sign_request(xml_frag, sp) do
+    if Esaml.esaml_sp(sp, :sp_sign_requests) do
+      :xmerl_dsig.sign(xml_frag, Esaml.esaml_sp(sp, :key), Esaml.esaml_sp(sp, :certificate))
+    else
+      xml_frag
+    end
   end
 
   @doc """
@@ -172,12 +192,32 @@ defmodule Samly.Helper do
     end
   end
 
+  # Compressed SAML messages are tiny (a few KB); a very large encoded payload is
+  # a decompression-bomb attempt. Bound the input before handing it to esaml's
+  # unbounded zlib:unzip. Configurable via `:max_saml_payload_bytes`.
+  @default_max_payload_bytes 256 * 1024
+
+  defp decode_saml_payload(_saml_encoding, saml_payload) when not is_binary(saml_payload) do
+    {:error, :invalid_request}
+  end
+
   defp decode_saml_payload(saml_encoding, saml_payload) do
-    try do
-      xml = :esaml_binding.decode_response(saml_encoding, saml_payload)
-      {:ok, xml}
-    rescue
-      error -> {:error, {:invalid_response, "#{inspect(error)}"}}
+    if byte_size(saml_payload) > max_payload_bytes() do
+      {:error, :payload_too_large}
+    else
+      try do
+        xml = :esaml_binding.decode_response(saml_encoding, saml_payload)
+        {:ok, xml}
+      rescue
+        error -> {:error, {:invalid_response, "#{inspect(error)}"}}
+      end
+    end
+  end
+
+  defp max_payload_bytes do
+    case Application.get_env(:samly, :max_saml_payload_bytes, @default_max_payload_bytes) do
+      n when is_integer(n) and n > 0 -> n
+      _ -> @default_max_payload_bytes
     end
   end
 end

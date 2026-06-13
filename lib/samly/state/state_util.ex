@@ -10,9 +10,10 @@ defmodule Samly.State.StateUtil do
 
   @spec validate_logout_assertion_expiry(Assertion.t()) :: :valid | :expired
   def validate_logout_assertion_expiry(%Assertion{authn: authn, subject: subject}) do
-    # Use SessionNotOnOrAfter when present — it is a session lifetime constraint.
-    # When absent, fall back to the subject's notonorafter (assertion validity window).
-    # SessionNotOnOrAfter absent — allow SLO regardless of subject window
+    # SessionNotOnOrAfter is the session lifetime constraint and governs SLO
+    # eligibility when present. When the IdP omits it, fall back to the subject's
+    # notonorafter (the assertion validity window): a session with no stated
+    # lifetime is treated as expired once the assertion it was built from expires.
     expiry_date =
       case Map.get(authn, "session_not_on_or_after") do
         nil -> subject.notonorafter

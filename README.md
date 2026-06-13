@@ -223,6 +223,7 @@ config :samly, Samly.Provider,
 | `use_redirect_for_req` | _(optional)_ Default is `false`. When this is `false`, `Samly` will POST to the IdP SAML endpoints. |
 | `sign_requests`, `sign_metadata` | _(optional)_ Default is `true`. |
 | `signed_assertion_in_resp`, `signed_envelopes_in_resp` | _(optional)_ Default is `true`. When `true`, `Samly` expects the requests and responses from IdP to be signed. |
+| `sign_logout_requests` | _(optional)_ Default is `true`. When `true`, `Samly` requires incoming IdP `LogoutRequest`/`LogoutResponse` messages to be signed and verifies the signature. For the POST binding the XML (enveloped) signature is checked; for the HTTP-Redirect binding the query-string signature (`SigAlg`/`Signature`) is verified against the IdP's signing certificate(s) from metadata. An unverified `LogoutRequest` will not terminate the user's session. |
 | `allow_idp_initiated_flow` | _(optional)_ Default is `false`. IDP initiated SSO is allowed only when this is set to `true`. |
 | `allowed_target_urls` | _(optional)_ Default is `[]`. `Samly` uses this **only** when `allow_idp_initiated_flow` parameter is set to `true`. Make sure to set this to one or more exact URLs you want to allow (whitelist). The URL to redirect the user after completing the SSO flow is sent from IDP in auth response as `relay_state`. This `relay_state` target URL is matched against this URL list. Set the value to `nil` if you do not want this whitelist capability. |
 | `nameid_format` | _(optional)_ When specified, `Samly` includes the value as the `NameIDPolicy` element's `Format` attribute in the login request. Value must either be a string or one of the following atoms: `:email`, `:x509`, `:windows`, `:krb`, `:persistent`, `:transient`. Use the string value when you need to specify a non-standard/custom nameid format supported by your IdP. |
@@ -260,6 +261,24 @@ config :samly, Samly.State,
 | Options | Description                                                                                                      |
 | :------ | :--------------------------------------------------------------------------------------------------------------- |
 | `opts`  | _(optional)_ The `:key` is the name of the session key where assertion is stored. Default is `:samly_assertion`. |
+
+#### Security-related Global Configuration
+
+These optional `config :samly, ...` keys tune assertion validation and hardening
+defaults. The defaults are safe; change them only if you understand the trade-off.
+
+```elixir
+config :samly,
+  clock_skew_secs: 90,
+  max_saml_payload_bytes: 262_144,
+  allow_absolute_target_urls: false
+```
+
+| Option | Description |
+| :----- | :---------- |
+| `clock_skew_secs` | _(optional)_ Default is `90`. Clock-skew allowance (seconds) applied when validating an assertion's `Conditions/@NotBefore`, so minor clock drift between the IdP and SP does not reject otherwise-valid assertions. |
+| `max_saml_payload_bytes` | _(optional)_ Default is `262144` (256 KB). Maximum size of an encoded `SAMLRequest`/`SAMLResponse` accepted before decoding. Bounds decompression-bomb exposure on the HTTP-Redirect binding. Raise this only if you legitimately exchange very large assertions. |
+| `allow_absolute_target_urls` | _(optional)_ Default is `false`. When `false`, the `target_url` request parameter must be a site-relative path (e.g. `/dashboard`); absolute (`https://...`) and protocol-relative (`//host`) values are rejected to prevent open redirects. Set to `true` only if you must redirect to external URLs after login. |
 
 ## SAML Assertion
 

@@ -27,6 +27,7 @@ defmodule Samly.IdpData do
             sign_metadata: true,
             signed_assertion_in_resp: true,
             signed_envelopes_in_resp: true,
+            sign_logout_requests: true,
             allow_idp_initiated_flow: false,
             allowed_target_urls: [],
             debug_mode: false,
@@ -60,6 +61,7 @@ defmodule Samly.IdpData do
           sign_metadata: boolean(),
           signed_assertion_in_resp: boolean(),
           signed_envelopes_in_resp: boolean(),
+          sign_logout_requests: boolean(),
           allow_idp_initiated_flow: boolean(),
           allowed_target_urls: nil | [binary()],
           debug_mode: boolean(),
@@ -154,6 +156,7 @@ defmodule Samly.IdpData do
     |> set_boolean_attr(opts_map, :sign_metadata)
     |> set_boolean_attr(opts_map, :signed_assertion_in_resp)
     |> set_boolean_attr(opts_map, :signed_envelopes_in_resp)
+    |> set_boolean_attr(opts_map, :sign_logout_requests)
     |> set_boolean_attr(opts_map, :allow_idp_initiated_flow)
     |> set_boolean_attr(opts_map, :force_authn)
     |> set_boolean_attr(opts_map, :debug_mode)
@@ -434,6 +437,7 @@ defmodule Samly.IdpData do
       sp_sign_metadata: idp_data.sign_metadata,
       idp_signs_envelopes: idp_data.signed_envelopes_in_resp,
       idp_signs_assertions: idp_data.signed_assertion_in_resp,
+      idp_signs_logout_requests: idp_data.sign_logout_requests,
       trusted_fingerprints: idp_data.fingerprints,
       metadata_uri: Helper.get_metadata_uri(idp_data.base_url, path_segment_idp_id),
       consume_uri:

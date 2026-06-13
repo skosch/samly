@@ -19,6 +19,24 @@ defmodule Samly.AuthRouterTest do
     |> assert_initial_saml_form("%2FHome")
   end
 
+  test "GET on signin uri rejects an absolute target_url (open-redirect guard)" do
+    conn =
+      conn(:get, "/signin/idp1", target_url: "https://evil.example.com/")
+      |> init_test_session(%{})
+      |> AuthRouter.call([])
+
+    assert conn.status == 400
+  end
+
+  test "GET on signin uri rejects a protocol-relative target_url" do
+    conn =
+      conn(:get, "/signin/idp1", target_url: "//evil.example.com/path")
+      |> init_test_session(%{})
+      |> AuthRouter.call([])
+
+    assert conn.status == 400
+  end
+
   test "POST on signin uri returns form that will be submited to idp" do
     assert ~c"urn:test:sp1" =
              conn(:post, "/signin/idp1", %{RelayState: "OOhdIq-_PagPusisHCjYBZsYSwr-bVUs"})

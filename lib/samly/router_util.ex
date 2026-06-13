@@ -46,7 +46,19 @@ defmodule Samly.RouterUtil do
   def check_target_url(conn, _opts) do
     try do
       target_url = conn.params["target_url"] && URI.decode_www_form(conn.params["target_url"])
-      conn |> Conn.put_private(:samly_target_url, target_url)
+
+      if relative_target_url?(target_url) do
+        conn |> Conn.put_private(:samly_target_url, target_url)
+      else
+        Logger.error("[Samly] rejected non-relative target_url: #{inspect(target_url)}")
+
+        Helper.handle_error_response(
+          conn,
+          :invalid_target_url,
+          400,
+          "target_url must be a relative path"
+        )
+      end
     rescue
       ArgumentError ->
         Logger.error(
@@ -59,6 +71,22 @@ defmodule Samly.RouterUtil do
           400,
           "target_url must be x-www-form-urlencoded"
         )
+    end
+  end
+
+  # A redirect target controlled by request parameters must stay on this site, or
+  # it becomes an open redirect. Accept only site-relative paths by default;
+  # protocol-relative ("//host") and absolute ("https://host") URLs are rejected.
+  # Set `config :samly, allow_absolute_target_urls: true` to opt out.
+  @spec relative_target_url?(nil | binary) :: boolean
+  def relative_target_url?(url) when url in [nil, ""], do: true
+
+  def relative_target_url?(url) when is_binary(url) do
+    cond do
+      Application.get_env(:samly, :allow_absolute_target_urls, false) -> true
+      String.starts_with?(url, "//") -> false
+      String.starts_with?(url, "/") -> true
+      true -> false
     end
   end
 

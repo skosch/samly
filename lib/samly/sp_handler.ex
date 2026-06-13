@@ -6,7 +6,7 @@ defmodule Samly.SPHandler do
 
   alias Samly.State.StateUtil
   alias Plug.Conn
-  alias Samly.{Assertion, Esaml, Helper, IdpData, State, Subject}
+  alias Samly.{Assertion, Esaml, Helper, IdpData, RedirectSignature, State, Subject}
 
   require Logger
   require Samly.Esaml
@@ -188,7 +188,8 @@ defmodule Samly.SPHandler do
     saml_response = params["SAMLResponse"]
     relay_state = params["RelayState"] |> safe_decode_www_form()
 
-    with {:ok, _payload} <- Helper.decode_idp_signout_resp(sp, saml_encoding, saml_response),
+    with :ok <- verify_redirect_signature(conn, idp, "SAMLResponse"),
+         {:ok, _payload} <- Helper.decode_idp_signout_resp(sp, saml_encoding, saml_response),
          ^relay_state when relay_state != nil <- get_session(conn, "relay_state"),
          ^idp_id <- get_session(conn, "idp_id"),
          {:halted, %Conn{halted: false} = conn} <- {:halted, pipethrough(conn, pipeline)},
@@ -217,13 +218,11 @@ defmodule Samly.SPHandler do
 
   # non-ui logout request from IDP
   def handle_logout_request(conn) do
-    %IdpData{id: idp_id} = idp = conn.private[:samly_idp]
-
     %IdpData{
       post_session_cleanup_pipeline: pipeline,
       esaml_idp_rec: idp_rec,
       esaml_sp_rec: sp_rec
-    } = idp
+    } = idp = conn.private[:samly_idp]
 
     sp = ensure_sp_uris_set(sp_rec, conn)
 
@@ -240,60 +239,94 @@ defmodule Samly.SPHandler do
     # Decode and validate the logout request first, before running any pipeline.
     # The IdP-facing LogoutResponse and the session drop must always happen,
     # regardless of whether the post_session_cleanup_pipeline halts.
-    case Helper.decode_idp_signout_req(sp, saml_encoding, saml_request) do
-      {:ok, payload} ->
-        Esaml.esaml_logoutreq(name: nameid, issuer: _issuer) = payload
-        assertion_key = {idp_id, nameid}
-
-        {conn, return_status} =
-          with %Assertion{idp_id: ^idp_id, subject: %Subject{name: ^nameid}} = assertion <-
-                 State.get_assertion(conn, assertion_key),
-               :valid <- StateUtil.validate_logout_assertion_expiry(assertion) do
-            maybe_call_on_logout(idp, idp_id, assertion)
-            conn = State.delete_assertion(conn, assertion_key)
-            {conn, :success}
-          else
-            _ ->
-              {conn, :denied}
-          end
-
-        {idp_signout_url, resp_xml_frag} = Helper.gen_idp_signout_resp(sp, idp_rec, return_status)
-
-        # Always drop the session and send the LogoutResponse to the IdP.
-        # Then run the pipeline for the user-facing side; if it halts (handled
-        # the response itself), return its conn — otherwise send the SAML response.
-        conn = configure_session(conn, drop: true)
-        pipeline_conn = pipethrough(conn, pipeline)
-
-        if pipeline_conn.halted do
-          pipeline_conn
-        else
-          send_saml_request(
-            conn,
-            idp_signout_url,
-            idp.use_redirect_for_req,
-            resp_xml_frag,
-            relay_state
-          )
-        end
-
+    #
+    # Redirect-binding signatures live on the query string, so verify them here
+    # before handing the message to esaml (which only checks XML signatures). An
+    # unverified request must not be allowed to terminate the user's session.
+    with :ok <- verify_redirect_signature(conn, idp, "SAMLRequest"),
+         {:ok, payload} <-
+           Helper.decode_idp_signout_req(logout_decode_sp(conn, sp), saml_encoding, saml_request) do
+      handle_valid_logout_request(conn, idp, sp, idp_rec, pipeline, payload, relay_state)
+    else
       error ->
         Logger.error("#{inspect(error)}")
-        {idp_signout_url, resp_xml_frag} = Helper.gen_idp_signout_resp(sp, idp_rec, :denied)
-
-        conn
-        |> send_saml_request(
-          idp_signout_url,
-          idp.use_redirect_for_req,
-          resp_xml_frag,
-          relay_state
-        )
+        send_denied_logout_resp(conn, sp, idp_rec, idp, relay_state)
     end
+  end
 
-    # rescue
-    #   error ->
-    #     Logger.error("#{inspect error}")
-    #     conn |> send_resp(500, "request_failed")
+  defp handle_valid_logout_request(conn, idp, sp, idp_rec, pipeline, payload, relay_state) do
+    %IdpData{id: idp_id} = idp
+    Esaml.esaml_logoutreq(name: nameid_rec, issuer: _issuer) = payload
+    # esaml returns the NameID as a charlist; assertions are stored under a binary
+    # nameid (Subject.from_rec). Normalize so the lookup key matches what consume
+    # stored — otherwise IdP-initiated logout never finds the session.
+    nameid = if is_list(nameid_rec), do: List.to_string(nameid_rec), else: nameid_rec
+    assertion_key = {idp_id, nameid}
+
+    {conn, return_status} =
+      with %Assertion{idp_id: ^idp_id, subject: %Subject{name: ^nameid}} = assertion <-
+             State.get_assertion(conn, assertion_key),
+           :valid <- StateUtil.validate_logout_assertion_expiry(assertion) do
+        maybe_call_on_logout(idp, idp_id, assertion)
+        conn = State.delete_assertion(conn, assertion_key)
+        {conn, :success}
+      else
+        _ ->
+          {conn, :denied}
+      end
+
+    {idp_signout_url, resp_xml_frag} = Helper.gen_idp_signout_resp(sp, idp_rec, return_status)
+
+    # Always drop the session and send the LogoutResponse to the IdP.
+    # Then run the pipeline for the user-facing side; if it halts (handled
+    # the response itself), return its conn — otherwise send the SAML response.
+    conn = configure_session(conn, drop: true)
+    pipeline_conn = pipethrough(conn, pipeline)
+
+    if pipeline_conn.halted do
+      pipeline_conn
+    else
+      send_saml_request(
+        conn,
+        idp_signout_url,
+        idp.use_redirect_for_req,
+        resp_xml_frag,
+        relay_state
+      )
+    end
+  end
+
+  # For the Redirect binding the signature is carried on the query string, not in
+  # the XML, so esaml's XML-signature check must be disabled for the decode;
+  # verify_redirect_signature/3 has already verified the query signature.
+  defp logout_decode_sp(conn, sp) do
+    case conn.method do
+      "GET" -> Esaml.esaml_sp(sp, idp_signs_logout_requests: false)
+      _ -> sp
+    end
+  end
+
+  defp verify_redirect_signature(conn, %IdpData{} = idp, message_type) do
+    if conn.method == "GET" and idp.sign_logout_requests do
+      case RedirectSignature.verify(conn.query_string, message_type, idp.certs) do
+        :ok -> :ok
+        other -> {:error, {:redirect_signature, other}}
+      end
+    else
+      :ok
+    end
+  end
+
+  defp send_denied_logout_resp(conn, sp, idp_rec, idp, relay_state) do
+    {idp_signout_url, resp_xml_frag} = Helper.gen_idp_signout_resp(sp, idp_rec, :denied)
+
+    send_saml_request(
+      conn,
+      idp_signout_url,
+      idp.use_redirect_for_req,
+      resp_xml_frag,
+      relay_state
+    )
   end
 
   defp safe_decode_www_form(nil), do: ""
