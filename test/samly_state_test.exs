@@ -117,5 +117,4 @@ defmodule Samly.StateTest do
       assert is_nil(Samly.State.get_assertion(conn, assertion_key))
     end
   end
-
 end

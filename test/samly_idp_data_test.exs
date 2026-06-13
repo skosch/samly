@@ -191,10 +191,18 @@ defmodule SamlyIdpDataTest do
   end
 
   test "custom_logout_url is stored as charlist when set", %{sps: sps} do
-    idp_config = Map.put(@idp_config1, :custom_logout_url, "https://shibboleth.example.org/idp/profile/SAML2/Redirect/SLO")
+    idp_config =
+      Map.put(
+        @idp_config1,
+        :custom_logout_url,
+        "https://shibboleth.example.org/idp/profile/SAML2/Redirect/SLO"
+      )
+
     %IdpData{} = idp_data = IdpData.load_provider(idp_config, sps)
     assert idp_data.valid?
-    assert idp_data.custom_logout_url == ~c"https://shibboleth.example.org/idp/profile/SAML2/Redirect/SLO"
+
+    assert idp_data.custom_logout_url ==
+             ~c"https://shibboleth.example.org/idp/profile/SAML2/Redirect/SLO"
 
     Esaml.esaml_sp(logout_uri: logout_uri) = idp_data.esaml_sp_rec
     assert logout_uri == ~c"https://shibboleth.example.org/idp/profile/SAML2/Redirect/SLO"

@@ -102,7 +102,9 @@ defmodule Samly.SecurityTest do
     test "assertion expired by subject but valid by session_not_on_or_after: validate_logout_assertion_expiry returns :valid" do
       # Subject expired 1 hour ago, but session is still active for 7 more hours
       not_on_or_after = DateTime.utc_now() |> DateTime.add(-1, :hour) |> DateTime.to_iso8601()
-      session_not_on_or_after = DateTime.utc_now() |> DateTime.add(7, :hour) |> DateTime.to_iso8601()
+
+      session_not_on_or_after =
+        DateTime.utc_now() |> DateTime.add(7, :hour) |> DateTime.to_iso8601()
 
       assertion = %Assertion{
         subject: %Subject{notonorafter: not_on_or_after},
@@ -124,7 +126,9 @@ defmodule Samly.SecurityTest do
       # responsibility (sp_handler handle_logout_request) to check expiry for SLO.
       conn = session_conn()
       not_on_or_after = DateTime.utc_now() |> DateTime.add(-2, :hour) |> DateTime.to_iso8601()
-      session_not_on_or_after = DateTime.utc_now() |> DateTime.add(-1, :hour) |> DateTime.to_iso8601()
+
+      session_not_on_or_after =
+        DateTime.utc_now() |> DateTime.add(-1, :hour) |> DateTime.to_iso8601()
 
       assertion = %Assertion{
         subject: %Subject{notonorafter: not_on_or_after},
@@ -146,7 +150,9 @@ defmodule Samly.SecurityTest do
     test "assertion with subject expired but active session is still accepted for SLO logout" do
       conn = session_conn()
       not_on_or_after = DateTime.utc_now() |> DateTime.add(-1, :hour) |> DateTime.to_iso8601()
-      session_not_on_or_after = DateTime.utc_now() |> DateTime.add(7, :hour) |> DateTime.to_iso8601()
+
+      session_not_on_or_after =
+        DateTime.utc_now() |> DateTime.add(7, :hour) |> DateTime.to_iso8601()
 
       assertion = %Assertion{
         subject: %Subject{notonorafter: not_on_or_after},

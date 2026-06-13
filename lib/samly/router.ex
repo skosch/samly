@@ -24,11 +24,11 @@ defmodule Samly.Router do
        report-to /sso/csp-report;
        """
        |> then(fn csp ->
-            case @frame_ancestors do
-              [_ | _] -> csp <> " frame-ancestors #{Enum.join(@frame_ancestors, " ")};"
-              _ -> csp
-            end
-          end)
+         case @frame_ancestors do
+           [_ | _] -> csp <> " frame-ancestors #{Enum.join(@frame_ancestors, " ")};"
+           _ -> csp
+         end
+       end)
        |> String.replace("\n", " ")
 
   defp secure_samly(conn, _opts) do

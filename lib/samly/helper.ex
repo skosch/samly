@@ -2,7 +2,7 @@ defmodule Samly.Helper do
   @moduledoc false
   require Logger
   require Samly.Esaml
-  alias Samly.{Assertion, Esaml, IdpData}
+  alias Samly.{Assertion, AssertionReplay, AssertionValidation, Esaml, IdpData}
 
   @spec get_idp(binary) :: nil | IdpData.t()
   def get_idp(idp_id) do
@@ -92,10 +92,26 @@ defmodule Samly.Helper do
     {idp_signin_url, add_force_authn(xml_frag)}
   end
 
+  @doc """
+  Returns the `ID` attribute of a generated `samlp:AuthnRequest` element.
+
+  The IdP echoes this value as `InResponseTo` in the SAML response; the SP must
+  store it and verify the match (Web SSO profile §4.1.4.5).
+  """
+  @spec get_request_id(tuple()) :: nil | binary()
+  def get_request_id(xml_frag) do
+    ns = [{~c"samlp", ~c"urn:oasis:names:tc:SAML:2.0:protocol"}]
+
+    case :xmerl_xpath.string(~c"/samlp:AuthnRequest/@ID", xml_frag, [{:namespace, ns}]) do
+      [attr | _] -> attr |> elem(8) |> List.to_string()
+      _ -> nil
+    end
+  end
+
   # Adds ForceAuthn="true" to the xmlElement record's attributes list.
   # xmlElement tuple layout (1-indexed): tag_atom(1), name(2), expanded_name(3), nsinfo(4),
   # namespace(5), parents(6), pos(7), attributes(8), content(9), language(10), xmlbase(11), elementdef(12)
-  @force_authn_attr {:xmlAttribute, :"ForceAuthn", [], [], [], [], 1, [], ~c"true", false}
+  @force_authn_attr {:xmlAttribute, :ForceAuthn, [], [], [], [], 1, [], ~c"true", false}
   defp add_force_authn({:xmlElement, _, _, _, _, _, _, attrs, _, _, _, _} = elem) do
     :erlang.setelement(8, elem, attrs ++ [@force_authn_attr])
   end
@@ -112,10 +128,13 @@ defmodule Samly.Helper do
     {idp_signout_url, xml_frag}
   end
 
-  def decode_idp_auth_resp(sp, saml_encoding, saml_response) do
+  def decode_idp_auth_resp(sp, saml_encoding, saml_response, expected_issuer \\ nil) do
     with {:ok, xml_frag} <- decode_saml_payload(saml_encoding, saml_response),
-         {:ok, assertion_rec} <- :esaml_sp.validate_assertion(xml_frag, sp) do
-      {:ok, Assertion.from_rec(assertion_rec)}
+         {:ok, assertion_rec} <- :esaml_sp.validate_assertion(xml_frag, sp),
+         assertion = Assertion.from_rec(assertion_rec),
+         :ok <- AssertionValidation.validate(xml_frag, assertion, sp, expected_issuer),
+         :ok <- AssertionReplay.check(xml_frag, assertion_rec) do
+      {:ok, assertion}
     else
       {:error, reason} -> {:error, reason}
       error -> {:error, {:invalid_request, "#{inspect(error)}"}}

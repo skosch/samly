@@ -47,7 +47,9 @@ defmodule SamlyHelperTest do
       assert String.contains?(exported, "ForceAuthn")
     end
 
-    test "ForceAuthn attribute is placed at index 8 (attributes field) of xmlElement", %{idp_data: idp_data} do
+    test "ForceAuthn attribute is placed at index 8 (attributes field) of xmlElement", %{
+      idp_data: idp_data
+    } do
       {_url, xml_frag} =
         Helper.gen_idp_signin_req(
           idp_data.esaml_sp_rec,
@@ -66,7 +68,7 @@ defmodule SamlyHelperTest do
 
       force_authn_attr =
         Enum.find(attributes, fn attr ->
-          is_tuple(attr) and elem(attr, 0) == :xmlAttribute and elem(attr, 1) == :"ForceAuthn"
+          is_tuple(attr) and elem(attr, 0) == :xmlAttribute and elem(attr, 1) == :ForceAuthn
         end)
 
       assert force_authn_attr != nil, "ForceAuthn attribute not found at index 8 of xmlElement"
@@ -84,6 +86,36 @@ defmodule SamlyHelperTest do
 
       exported = :xmerl.export_simple([xml_frag], :xmerl_xml) |> IO.iodata_to_binary()
       refute String.contains?(exported, "ForceAuthn")
+    end
+  end
+
+  describe "get_request_id/1" do
+    test "returns the ID attribute of a generated AuthnRequest", %{idp_data: idp_data} do
+      {_url, xml_frag} =
+        Helper.gen_idp_signin_req(
+          idp_data.esaml_sp_rec,
+          idp_data.esaml_idp_rec,
+          idp_data.nameid_format,
+          false
+        )
+
+      request_id = Helper.get_request_id(xml_frag)
+
+      assert is_binary(request_id)
+      assert request_id != ""
+
+      # The extracted ID must be the same ID attribute carried in the exported XML,
+      # since that is what the IdP echoes back as InResponseTo.
+      exported = :xmerl.export_simple([xml_frag], :xmerl_xml) |> IO.iodata_to_binary()
+      assert String.contains?(exported, ~s(ID="#{request_id}"))
+    end
+
+    test "returns nil for XML that is not an AuthnRequest" do
+      {doc, _} =
+        ~c"<samlp:LogoutRequest xmlns:samlp=\"urn:oasis:names:tc:SAML:2.0:protocol\" ID=\"x\" />"
+        |> :xmerl_scan.string(namespace_conformant: true)
+
+      assert Helper.get_request_id(doc) == nil
     end
   end
 end
