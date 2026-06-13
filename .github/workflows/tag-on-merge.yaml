@@ -1,27 +1,31 @@
 name: Tag on Merge
 
 on:
-    push:
-        branches:
-            - main
+  push:
+    branches:
+      - main
 
 jobs:
-    tag:
-        runs-on: ubuntu-latest
-        steps:
-            - name: Checkout code
-              uses: actions/checkout@v4
+  tag:
+    runs-on: ubuntu-latest
+    # Grant write permissions to the GITHUB_TOKEN for this job
+    permissions:
+      contents: write
+      
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-            - name: Fetch all tags
-              id: bump
-              run: |
-                  next_tag=$(bash bump-patch-version.sh)
-                  echo "next_tag=$next_tag" >> $GITHUB_OUTPUT
+      - name: Fetch all tags
+        id: bump
+        run: |
+          next_tag=$(bash bump-patch-version.sh)
+          echo "next_tag=$next_tag" >> $GITHUB_OUTPUT
 
-            - name: Create new tag
-              run: |
-                  git config user.name "github-actions[bot]"
-                  git config user.email "github-actions[bot]@users.noreply.github.com"
-                  echo "creating new tag: ${{ steps.bump.outputs.next_tag }}"
-                  git tag ${{ steps.bump.outputs.next_tag }}
-                  git push origin ${{ steps.bump.outputs.next_tag }}
+      - name: Create new tag
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          echo "creating new tag: ${{ steps.bump.outputs.next_tag }}"
+          git tag ${{ steps.bump.outputs.next_tag }}
+          git push origin ${{ steps.bump.outputs.next_tag }}
