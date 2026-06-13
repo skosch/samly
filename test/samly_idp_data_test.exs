@@ -172,36 +172,36 @@ defmodule SamlyIdpDataTest do
     assert idp_data.post_session_cleanup_pipeline == MyPipeline
   end
 
-  test "valid-idp-config-12-custom-recipient-url", %{sps: sps} do
-    idp_config = Map.put(@idp_config1, :custom_recipient_url, nil)
+  test "valid-idp-config-12-custom-consume-uri", %{sps: sps} do
+    idp_config = Map.put(@idp_config1, :custom_consume_uri, nil)
     %IdpData{} = idp_data = IdpData.load_provider(idp_config, sps)
     assert idp_data.valid?
-    refute idp_data.custom_recipient_url
+    refute idp_data.custom_consume_uri
 
-    idp_config = Map.put(idp_config, :custom_recipient_url, "custom-recipient-url")
+    idp_config = Map.put(idp_config, :custom_consume_uri, "custom-consume-uri")
     %IdpData{} = idp_data = IdpData.load_provider(idp_config, sps)
     assert idp_data.valid?
-    assert idp_data.custom_recipient_url == ~c"custom-recipient-url"
+    assert idp_data.custom_consume_uri == ~c"custom-consume-uri"
   end
 
-  test "custom_logout_url defaults to nil", %{sps: sps} do
+  test "custom_logout_uri defaults to nil", %{sps: sps} do
     %IdpData{} = idp_data = IdpData.load_provider(@idp_config1, sps)
     assert idp_data.valid?
-    refute idp_data.custom_logout_url
+    refute idp_data.custom_logout_uri
   end
 
-  test "custom_logout_url is stored as charlist when set", %{sps: sps} do
+  test "custom_logout_uri is stored as charlist when set", %{sps: sps} do
     idp_config =
       Map.put(
         @idp_config1,
-        :custom_logout_url,
+        :custom_logout_uri,
         "https://shibboleth.example.org/idp/profile/SAML2/Redirect/SLO"
       )
 
     %IdpData{} = idp_data = IdpData.load_provider(idp_config, sps)
     assert idp_data.valid?
 
-    assert idp_data.custom_logout_url ==
+    assert idp_data.custom_logout_uri ==
              ~c"https://shibboleth.example.org/idp/profile/SAML2/Redirect/SLO"
 
     Esaml.esaml_sp(logout_uri: logout_uri) = idp_data.esaml_sp_rec

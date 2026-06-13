@@ -190,7 +190,7 @@ defmodule Samly.SPHandler do
 
     with :ok <- verify_redirect_signature(conn, idp, "SAMLResponse"),
          {:ok, _payload} <- Helper.decode_idp_signout_resp(sp, saml_encoding, saml_response),
-         ^relay_state when relay_state != nil <- get_session(conn, "relay_state"),
+         ^relay_state <- get_session(conn, "relay_state"),
          ^idp_id <- get_session(conn, "idp_id"),
          {:halted, %Conn{halted: false} = conn} <- {:halted, pipethrough(conn, pipeline)},
          target_url when target_url != nil <- get_session(conn, "target_url") do

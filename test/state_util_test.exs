@@ -84,8 +84,10 @@ defmodule Samly.StateUtilTest do
       assert result == :valid
     end
 
-    test "is :expired when session_not_on_or_after is missing and assertion subject has also expired" do
-      # Arrange
+    test "is :valid when session_not_on_or_after is missing, even if assertion subject has expired" do
+      # Subject NotOnOrAfter is an assertion replay-protection window (5–15 min),
+      # not a session lifetime. SLO must not be blocked just because the short-lived
+      # assertion window has closed — the user's SSO session may still be active.
       not_on_or_after = DateTime.utc_now() |> DateTime.add(-8, :hour) |> DateTime.to_iso8601()
 
       assertion = %Samly.Assertion{
@@ -93,15 +95,11 @@ defmodule Samly.StateUtilTest do
         authn: %{}
       }
 
-      # Act
       result = StateUtil.validate_logout_assertion_expiry(assertion)
-
-      # Assert
-      assert result == :expired
+      assert result == :valid
     end
 
-    test "is :valid when session_not_on_or_after is missing but assertion subject has not expired" do
-      # Arrange
+    test "is :valid when session_not_on_or_after is missing and assertion subject has not expired" do
       not_on_or_after = DateTime.utc_now() |> DateTime.add(8, :hour) |> DateTime.to_iso8601()
 
       assertion = %Samly.Assertion{
@@ -109,7 +107,6 @@ defmodule Samly.StateUtilTest do
         authn: %{}
       }
 
-      # Act
       result = StateUtil.validate_logout_assertion_expiry(assertion)
 
       # Assert

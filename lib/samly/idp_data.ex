@@ -14,9 +14,9 @@ defmodule Samly.IdpData do
             sp_id: "",
             base_url: nil,
             # Overrides computed ACS URL — for legacy Shibboleth setups that can't re-register IdP metadata.
-            custom_recipient_url: nil,
+            custom_consume_uri: nil,
             # Overrides computed SLO URL — for legacy Shibboleth setups that can't re-register IdP metadata.
-            custom_logout_url: nil,
+            custom_logout_uri: nil,
             metadata_file: nil,
             metadata: nil,
             pre_session_create_pipeline: nil,
@@ -49,8 +49,8 @@ defmodule Samly.IdpData do
           id: binary(),
           sp_id: binary(),
           base_url: nil | binary(),
-          custom_recipient_url: nil | binary(),
-          custom_logout_url: nil | binary(),
+          custom_consume_uri: nil | charlist(),
+          custom_logout_uri: nil | charlist(),
           metadata_file: nil | binary(),
           metadata: nil | binary(),
           pre_session_create_pipeline: nil | module(),
@@ -148,8 +148,8 @@ defmodule Samly.IdpData do
     |> set_metadata(opts_map)
     |> set_pipeline(opts_map)
     |> set_on_logout(opts_map)
-    |> set_custom_recipient_url(opts_map)
-    |> set_custom_logout_url(opts_map)
+    |> set_custom_consume_uri(opts_map)
+    |> set_custom_logout_uri(opts_map)
     |> set_allowed_target_urls(opts_map)
     |> set_boolean_attr(opts_map, :use_redirect_for_req)
     |> set_boolean_attr(opts_map, :sign_requests)
@@ -262,26 +262,26 @@ defmodule Samly.IdpData do
     end
   end
 
-  @spec set_custom_recipient_url(%IdpData{}, map()) :: %IdpData{}
-  defp set_custom_recipient_url(%IdpData{} = idp_data, %{} = opts_map) do
-    consume_url =
-      case Map.get(opts_map, :custom_recipient_url) do
+  @spec set_custom_consume_uri(%IdpData{}, map()) :: %IdpData{}
+  defp set_custom_consume_uri(%IdpData{} = idp_data, %{} = opts_map) do
+    consume_uri =
+      case Map.get(opts_map, :custom_consume_uri) do
         nil -> nil
         url -> String.to_charlist(url)
       end
 
-    %IdpData{idp_data | custom_recipient_url: consume_url}
+    %IdpData{idp_data | custom_consume_uri: consume_uri}
   end
 
-  @spec set_custom_logout_url(%IdpData{}, map()) :: %IdpData{}
-  defp set_custom_logout_url(%IdpData{} = idp_data, %{} = opts_map) do
-    logout_url =
-      case Map.get(opts_map, :custom_logout_url) do
+  @spec set_custom_logout_uri(%IdpData{}, map()) :: %IdpData{}
+  defp set_custom_logout_uri(%IdpData{} = idp_data, %{} = opts_map) do
+    logout_uri =
+      case Map.get(opts_map, :custom_logout_uri) do
         nil -> nil
         url -> String.to_charlist(url)
       end
 
-    %IdpData{idp_data | custom_logout_url: logout_url}
+    %IdpData{idp_data | custom_logout_uri: logout_uri}
   end
 
   defp set_allowed_target_urls(%IdpData{} = idp_data, %{} = opts_map) do
@@ -441,10 +441,10 @@ defmodule Samly.IdpData do
       trusted_fingerprints: idp_data.fingerprints,
       metadata_uri: Helper.get_metadata_uri(idp_data.base_url, path_segment_idp_id),
       consume_uri:
-        idp_data.custom_recipient_url ||
+        idp_data.custom_consume_uri ||
           Helper.get_consume_uri(idp_data.base_url, path_segment_idp_id),
       logout_uri:
-        idp_data.custom_logout_url ||
+        idp_data.custom_logout_uri ||
           Helper.get_logout_uri(idp_data.base_url, path_segment_idp_id),
       entity_id: sp_entity_id
     )

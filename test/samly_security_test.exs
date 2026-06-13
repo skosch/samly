@@ -115,10 +115,12 @@ defmodule Samly.SecurityTest do
       assert result == :valid
     end
 
-    test "assertion expired by subject, no session_not_on_or_after: validate_logout_assertion_expiry returns :expired" do
+    test "assertion expired by subject, no session_not_on_or_after: validate_logout_assertion_expiry returns :valid" do
+      # Subject NotOnOrAfter is a replay-protection window, not a session lifetime.
+      # When SessionNotOnOrAfter is absent (the common case), SLO must not be blocked.
       assertion = expired_assertion()
       result = StateUtil.validate_logout_assertion_expiry(assertion)
-      assert result == :expired
+      assert result == :valid
     end
 
     test "fully expired assertion (both subject and session expired) is still retrievable from state store" do
