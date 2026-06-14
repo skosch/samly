@@ -108,8 +108,11 @@ defmodule Samly.SpData do
       key = :esaml_util.load_private_key(keyfile)
       %SpData{sp_data | key: key}
     rescue
-      _error ->
-        Logger.error("[Samly] Failed load SP keyfile [#{inspect(keyfile)}]: #{inspect(opts_map)}")
+      error ->
+        Logger.error(
+          "[Samly] Failed load SP keyfile [#{inspect(keyfile)}]: #{Exception.message(error)} — sp: #{inspect(opts_map)}"
+        )
+
         %SpData{sp_data | key: :undefined, valid?: false}
     end
   end
