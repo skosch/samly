@@ -93,4 +93,28 @@ defmodule Samly do
   def get_attribute(%Assertion{} = assertion, name) do
     Map.get(assertion.computed, name) || Map.get(assertion.attributes, name)
   end
+
+  @doc """
+  Returns the NameID from the given SAML Assertion.
+
+  The NameID is the primary identifier for the subject as issued by the IdP.
+  Some deployments (e.g. those migrating from mod_auth_mellon without a
+  dedicated uid attribute) use the NameID directly as the user identifier.
+  For deployments that carry the user identifier in a SAML attribute, prefer
+  `get_attribute/2` instead.
+
+  Returns `nil` if the assertion is `nil`.
+
+  ## Parameters
+
+  +   `assertion` - SAML assertion obtained by calling `get_active_assertion/1`
+
+  ## Examples
+
+      assertion = Samly.get_active_assertion(conn)
+      nameid = Samly.get_nameid(assertion)
+  """
+  @spec get_nameid(nil | Assertion.t()) :: nil | binary()
+  def get_nameid(nil), do: nil
+  def get_nameid(%Assertion{subject: %{name: name}}), do: name
 end
