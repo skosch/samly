@@ -72,6 +72,8 @@ defmodule Samly.SPHandler do
         conn
 
       {:error, reason} ->
+        Logger.error("[Samly] ACS consume failed for IdP #{idp_id}: #{inspect(reason)}")
+
         {_, assertion_or_error} =
           Helper.decode_idp_auth_resp(sp, saml_encoding, saml_response, idp.entity_id)
 
