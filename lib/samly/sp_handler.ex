@@ -72,10 +72,16 @@ defmodule Samly.SPHandler do
         conn
 
       {:error, reason} ->
-        Logger.error("[Samly] ACS consume failed for IdP #{idp_id}: #{inspect(reason)}")
-
         {_, assertion_or_error} =
           Helper.decode_idp_auth_resp(sp, saml_encoding, saml_response, idp.entity_id)
+
+        not_on_or_after =
+          case assertion_or_error do
+            %Samly.Assertion{subject: %{not_on_or_after: t}} -> t
+            _ -> "unknown"
+          end
+
+        Logger.error("[Samly] ACS consume failed for IdP #{idp_id}: #{inspect(reason)} — server_utc=#{DateTime.utc_now()} assertion_not_on_or_after=#{inspect(not_on_or_after)}")
 
         conn
         |> put_private(:samly_error, reason)
