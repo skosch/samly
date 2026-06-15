@@ -105,7 +105,8 @@ defmodule Samly.SPHandler do
             end
         end
 
-      _ ->
+      other ->
+        Logger.error("[Samly] ACS consume unexpected result for IdP #{idp_id}: #{inspect(other)}")
         Helper.handle_error_response(conn, :access_denied, 403, "access_denied")
     end
   end

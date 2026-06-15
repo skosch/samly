@@ -39,6 +39,7 @@ defmodule Samly.RouterUtil do
     if idp do
       conn |> Conn.put_private(:samly_idp, idp)
     else
+      Logger.error("[Samly] check_idp_id: unknown or invalid IdP #{inspect(idp_id)} (loaded: #{inspect(Map.keys(Application.get_env(:samly, :identity_providers, %{})))})")
       Helper.handle_error_response(conn, :unknown_idp, 403, "invalid_request unknown IdP")
     end
   end
