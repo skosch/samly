@@ -4,8 +4,16 @@ defmodule Samly.State.StateUtil do
   alias Samly.Assertion
 
   @spec validate_login_assertion_expiry(Assertion.t()) :: :valid | :expired
-  def validate_login_assertion_expiry(%Assertion{subject: %{notonorafter: expiry_date}}) do
-    if date_passed?(expiry_date), do: :expired, else: :valid
+  def validate_login_assertion_expiry(%Assertion{authn: authn}) do
+    # Use SessionNotOnOrAfter when present — it is the actual SSO session lifetime.
+    # The subject's NotOnOrAfter (SubjectConfirmationData) is a bearer-assertion
+    # replay-protection window (5–15 min), not a session lifetime; gating ongoing
+    # requests on it logs the user out minutes after login even though their SSO
+    # session (and the IdP's) is still active. When absent, allow the login.
+    case Map.get(authn, "session_not_on_or_after") do
+      nil -> :valid
+      session_exp -> if date_passed?(session_exp), do: :expired, else: :valid
+    end
   end
 
   @spec validate_logout_assertion_expiry(Assertion.t()) :: :valid | :expired
