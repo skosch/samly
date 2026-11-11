@@ -34,7 +34,9 @@ defmodule Samly.Mixfile do
   defp deps() do
     [
       {:plug, "~> 1.6"},
-      {:esaml, "~> 4.3"},
+      # Patched fork (skosch/esaml): CVE-2026-28809 XXE fix, xmlenc11#rsa-oaep,
+      # rsa-sha512. Pinned here so consuming apps need no esaml override.
+      {:esaml, github: "skosch/esaml", ref: "1c130ec"},
       {:sweet_xml, "~> 0.6"},
       {:dialyxir, "~> 1.0", only: [:dev], runtime: false},
       {:ex_doc, "~> 0.31", only: :dev, runtime: false},
