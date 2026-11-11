@@ -32,9 +32,9 @@ defmodule Samly.State.StateUtil do
     # session (and the IdP's) is still active.
     #
     # When the IdP sends no SessionNotOnOrAfter, fall back to a cap measured from
-    # when this SP received the assertion (`received_at`), so such sessions are
-    # not unlimited. An assertion without `received_at` (e.g. stored before this
-    # field existed) is treated as expired.
+    # when this SP received the assertion (`received_at`, falling back to
+    # `issue_instant`), so such sessions are not unlimited. If neither is
+    # available the assertion is treated as expired.
     case Map.get(authn, "session_not_on_or_after") do
       nil -> within_max_age(assertion, max_session_age)
       session_exp -> if date_passed?(session_exp), do: :expired, else: :valid
@@ -44,12 +44,29 @@ defmodule Samly.State.StateUtil do
   defp within_max_age(_assertion, nil), do: :valid
 
   defp within_max_age(assertion, max_age) do
-    case Map.get(assertion, :received_at) do
-      received_at when is_integer(received_at) ->
-        if System.os_time(:second) - received_at < max_age, do: :valid, else: :expired
+    case session_start(assertion) do
+      started_at when is_integer(started_at) ->
+        if System.os_time(:second) - started_at < max_age, do: :valid, else: :expired
 
       _ ->
         :expired
+    end
+  end
+
+  # When this SP received the assertion. Sessions stored before `received_at`
+  # existed fall back to the assertion's IssueInstant (IdP clock, but within
+  # seconds of receipt) so an upgrade does not log everyone out at once.
+  # Unparsable or missing => nil => expired (fail closed).
+  defp session_start(assertion) do
+    case Map.get(assertion, :received_at) do
+      received_at when is_integer(received_at) ->
+        received_at
+
+      _ ->
+        case DateTime.from_iso8601(Map.get(assertion, :issue_instant) || "") do
+          {:ok, issued, _} -> DateTime.to_unix(issued)
+          _ -> nil
+        end
     end
   end
 

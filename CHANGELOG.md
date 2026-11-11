@@ -1,5 +1,10 @@
 # CHANGELOG
 
+### v1.5.1
++   Sessions stored before `received_at` existed now fall back to the assertion's `issue_instant` for the `max_session_age` cap instead of expiring immediately (no mass logout on upgrade); neither available still fails closed
++   A missing `max_session_age` on an IdP map means the default, not "disabled"
++   Clearer error for an invalid `max_session_age`; `Samly.Assertion.stamp_received/2` is now a tested function
+
 ### v1.5.0
 +   Login expiry now follows `SessionNotOnOrAfter` (the SSO session lifetime) instead of the subject's `NotOnOrAfter`, which is only a bearer-assertion replay window and logged users out minutes after login
 +   New per-IdP `max_session_age` (default 7 days): caps sessions for IdPs that send no `SessionNotOnOrAfter`, measured from `Assertion.received_at`. `nil`/`:infinity` disables it. Assertions without `received_at` (stored before upgrading) are treated as expired

@@ -86,8 +86,42 @@ defmodule Samly.StateUtilTest do
                :valid
     end
 
-    test "assertion without received_at is :expired (fail closed)" do
+    test "assertion with neither received_at nor issue_instant is :expired (fail closed)" do
       assert StateUtil.validate_login_assertion_expiry(%Samly.Assertion{authn: %{}}) == :expired
+    end
+
+    test "assertion stored before received_at existed falls back to issue_instant" do
+      ago = fn secs ->
+        DateTime.utc_now() |> DateTime.add(-secs, :second) |> DateTime.to_iso8601()
+      end
+
+      recent = %Samly.Assertion{authn: %{}, issue_instant: ago.(3600)}
+      old = %Samly.Assertion{authn: %{}, issue_instant: ago.(8 * 24 * 3600)}
+      garbage = %Samly.Assertion{authn: %{}, issue_instant: "not-a-date"}
+
+      assert StateUtil.validate_login_assertion_expiry(recent) == :valid
+      assert StateUtil.validate_login_assertion_expiry(old) == :expired
+      assert StateUtil.validate_login_assertion_expiry(garbage) == :expired
+    end
+
+    test "received_at takes precedence over issue_instant" do
+      old_issue = DateTime.utc_now() |> DateTime.add(-30, :day) |> DateTime.to_iso8601()
+
+      assertion = %Samly.Assertion{
+        authn: %{},
+        issue_instant: old_issue,
+        received_at: System.os_time(:second)
+      }
+
+      assert StateUtil.validate_login_assertion_expiry(assertion) == :valid
+    end
+
+    test "Assertion.stamp_received/2 records the receive time" do
+      assert %Samly.Assertion{received_at: 42} =
+               Samly.Assertion.stamp_received(%Samly.Assertion{}, 42)
+
+      now = System.os_time(:second)
+      assert Samly.Assertion.stamp_received(%Samly.Assertion{}).received_at in [now, now + 1]
     end
 
     test "the cap is ignored when the IdP sent session_not_on_or_after" do

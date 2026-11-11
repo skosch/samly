@@ -53,13 +53,9 @@ defmodule Samly.SPHandler do
       computed = updated_assertion.computed
       attrs = updated_assertion.attributes
 
-      assertion = %{
-        assertion
-        | computed: computed,
-          attributes: attrs,
-          idp_id: idp_id,
-          received_at: System.os_time(:second)
-      }
+      assertion =
+        %{assertion | computed: computed, attributes: attrs, idp_id: idp_id}
+        |> Assertion.stamp_received()
 
       nameid = assertion.subject.name
       assertion_key = {idp_id, nameid}

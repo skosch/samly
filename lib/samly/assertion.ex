@@ -44,6 +44,14 @@ defmodule Samly.Assertion do
           received_at: nil | integer()
         }
 
+  @doc """
+  Records when this SP received the assertion. Used to bound sessions whose
+  IdP sent no `SessionNotOnOrAfter` (see the `max_session_age` IdP option).
+  """
+  @spec stamp_received(t(), integer()) :: t()
+  def stamp_received(%__MODULE__{} = assertion, now \\ System.os_time(:second)),
+    do: %{assertion | received_at: now}
+
   @doc false
   def from_rec(assertion_rec) do
     Esaml.esaml_assertion(

@@ -170,11 +170,22 @@ defmodule Samly.IdpData do
   @spec set_max_session_age(%IdpData{}, map()) :: %IdpData{}
   defp set_max_session_age(%IdpData{} = idp_data, %{} = opts_map) do
     case Map.fetch(opts_map, :max_session_age) do
-      {:ok, age} when is_integer(age) and age > 0 -> %{idp_data | max_session_age: age}
-      {:ok, nil} -> %{idp_data | max_session_age: nil}
-      {:ok, :infinity} -> %{idp_data | max_session_age: nil}
-      {:ok, other} -> raise ArgumentError, "invalid max_session_age: #{inspect(other)}"
-      :error -> idp_data
+      {:ok, age} when is_integer(age) and age > 0 ->
+        %{idp_data | max_session_age: age}
+
+      {:ok, nil} ->
+        %{idp_data | max_session_age: nil}
+
+      {:ok, :infinity} ->
+        %{idp_data | max_session_age: nil}
+
+      {:ok, other} ->
+        raise ArgumentError,
+              "invalid max_session_age for IdP #{inspect(idp_data.id)}: #{inspect(other)} " <>
+                "(expected a positive number of seconds, nil or :infinity)"
+
+      :error ->
+        idp_data
     end
   end
 

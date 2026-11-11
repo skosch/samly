@@ -67,7 +67,10 @@ defmodule Samly.AuthHandler do
 
     with %Assertion{idp_id: ^idp_id} = assertion <- State.get_assertion(conn, assertion_key),
          :valid <-
-           StateUtil.validate_login_assertion_expiry(assertion, Map.get(idp, :max_session_age)) do
+           StateUtil.validate_login_assertion_expiry(
+             assertion,
+             Map.get(idp, :max_session_age, StateUtil.default_max_session_age())
+           ) do
       redirect(conn, 302, target_url)
     else
       _ ->
