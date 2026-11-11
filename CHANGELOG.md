@@ -1,5 +1,10 @@
 # CHANGELOG
 
+### v1.5.0
++   Login expiry now follows `SessionNotOnOrAfter` (the SSO session lifetime) instead of the subject's `NotOnOrAfter`, which is only a bearer-assertion replay window and logged users out minutes after login
++   New per-IdP `max_session_age` (default 7 days): caps sessions for IdPs that send no `SessionNotOnOrAfter`, measured from `Assertion.received_at`. `nil`/`:infinity` disables it. Assertions without `received_at` (stored before upgrading) are treated as expired
++   Depend on the patched `skosch/esaml` fork directly (CVE-2026-28809 XXE fix, `xmlenc11#rsa-oaep`, `rsa-sha512`), so consuming apps no longer need an `esaml` override
+
 ### v1.7.3
 +   Switch `esaml` dependency from Hex to [ForwardFinancing](https://github.com/ForwardFinancing/esaml) fork to include XXE vulnerability fix (CVE-2026-XXE)
 +   Disables XML entity expansion in all `xmerl_scan:string/2` call sites via `{allow_entities, false}`

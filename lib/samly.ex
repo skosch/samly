@@ -26,7 +26,11 @@ defmodule Samly do
   @spec get_active_assertion(Conn.t()) :: nil | Assertion.t()
   def get_active_assertion(conn) do
     with %Assertion{} = assertion <- get_assertion(conn),
-         :valid <- StateUtil.validate_login_assertion_expiry(assertion) do
+         :valid <-
+           StateUtil.validate_login_assertion_expiry(
+             assertion,
+             StateUtil.max_session_age(assertion.idp_id)
+           ) do
       assertion
     else
       _ -> nil

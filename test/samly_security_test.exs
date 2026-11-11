@@ -31,21 +31,36 @@ defmodule Samly.SecurityTest do
     |> fetch_session()
   end
 
+  # SSO session (SessionNotOnOrAfter) ended an hour ago.
   defp expired_assertion() do
+    past = DateTime.utc_now() |> DateTime.add(-1, :hour) |> DateTime.to_iso8601()
+
+    %Assertion{
+      subject: %Subject{notonorafter: past},
+      authn: %{"session_not_on_or_after" => past},
+      received_at: System.os_time(:second) - 7200
+    }
+  end
+
+  # Only the bearer-assertion replay window has passed; the IdP sent no
+  # SessionNotOnOrAfter.
+  defp subject_expired_assertion() do
     not_on_or_after = DateTime.utc_now() |> DateTime.add(-1, :hour) |> DateTime.to_iso8601()
 
     %Assertion{
       subject: %Subject{notonorafter: not_on_or_after},
-      authn: %{}
+      authn: %{},
+      received_at: System.os_time(:second)
     }
   end
 
   defp valid_assertion() do
-    not_on_or_after = DateTime.utc_now() |> DateTime.add(8, :hour) |> DateTime.to_iso8601()
+    future = DateTime.utc_now() |> DateTime.add(8, :hour) |> DateTime.to_iso8601()
 
     %Assertion{
-      subject: %Subject{notonorafter: not_on_or_after},
-      authn: %{}
+      subject: %Subject{notonorafter: future},
+      authn: %{"session_not_on_or_after" => future},
+      received_at: System.os_time(:second)
     }
   end
 
@@ -118,7 +133,7 @@ defmodule Samly.SecurityTest do
     test "assertion expired by subject, no session_not_on_or_after: validate_logout_assertion_expiry returns :valid" do
       # Subject NotOnOrAfter is a replay-protection window, not a session lifetime.
       # When SessionNotOnOrAfter is absent (the common case), SLO must not be blocked.
-      assertion = expired_assertion()
+      assertion = subject_expired_assertion()
       result = StateUtil.validate_logout_assertion_expiry(assertion)
       assert result == :valid
     end

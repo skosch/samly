@@ -43,7 +43,8 @@ defmodule Samly.IdpData do
             esaml_idp_rec: Esaml.esaml_idp_metadata(),
             esaml_sp_rec: Esaml.esaml_sp(),
             valid?: false,
-            force_authn: false
+            force_authn: false,
+            max_session_age: 7 * 24 * 60 * 60
 
   @type t :: %__MODULE__{
           id: binary(),
@@ -77,7 +78,8 @@ defmodule Samly.IdpData do
           esaml_idp_rec: :esaml.idp_metadata(),
           esaml_sp_rec: :esaml.sp(),
           valid?: boolean(),
-          force_authn: boolean()
+          force_authn: boolean(),
+          max_session_age: nil | pos_integer()
         }
 
   @entdesc "md:EntityDescriptor"
@@ -160,6 +162,20 @@ defmodule Samly.IdpData do
     |> set_boolean_attr(opts_map, :allow_idp_initiated_flow)
     |> set_boolean_attr(opts_map, :force_authn)
     |> set_boolean_attr(opts_map, :debug_mode)
+    |> set_max_session_age(opts_map)
+  end
+
+  # Upper bound (seconds) on the SP session when the IdP sends no
+  # SessionNotOnOrAfter. `nil` or `:infinity` disables the cap.
+  @spec set_max_session_age(%IdpData{}, map()) :: %IdpData{}
+  defp set_max_session_age(%IdpData{} = idp_data, %{} = opts_map) do
+    case Map.fetch(opts_map, :max_session_age) do
+      {:ok, age} when is_integer(age) and age > 0 -> %{idp_data | max_session_age: age}
+      {:ok, nil} -> %{idp_data | max_session_age: nil}
+      {:ok, :infinity} -> %{idp_data | max_session_age: nil}
+      {:ok, other} -> raise ArgumentError, "invalid max_session_age: #{inspect(other)}"
+      :error -> idp_data
+    end
   end
 
   @spec load_metadata(%IdpData{}) :: %IdpData{}

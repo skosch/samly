@@ -382,4 +382,31 @@ defmodule SamlyIdpDataTest do
     %IdpData{} = idp_data = IdpData.load_provider(idp_config, sps)
     assert idp_data.on_logout == nil
   end
+
+  describe "max_session_age" do
+    test "defaults to 7 days", %{sps: sps} do
+      %IdpData{} = idp_data = IdpData.load_provider(@idp_config1, sps)
+      assert idp_data.max_session_age == 7 * 24 * 60 * 60
+    end
+
+    test "accepts a positive integer number of seconds", %{sps: sps} do
+      idp_data = IdpData.load_provider(Map.put(@idp_config1, :max_session_age, 3600), sps)
+      assert idp_data.max_session_age == 3600
+    end
+
+    test "nil and :infinity disable the cap", %{sps: sps} do
+      for v <- [nil, :infinity] do
+        idp_data = IdpData.load_provider(Map.put(@idp_config1, :max_session_age, v), sps)
+        assert idp_data.max_session_age == nil
+      end
+    end
+
+    test "rejects invalid values", %{sps: sps} do
+      for v <- [0, -5, "3600", 1.5] do
+        assert_raise ArgumentError, fn ->
+          IdpData.load_provider(Map.put(@idp_config1, :max_session_age, v), sps)
+        end
+      end
+    end
+  end
 end

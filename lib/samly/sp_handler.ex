@@ -52,7 +52,14 @@ defmodule Samly.SPHandler do
       updated_assertion = conn.private[:samly_assertion]
       computed = updated_assertion.computed
       attrs = updated_assertion.attributes
-      assertion = %{assertion | computed: computed, attributes: attrs, idp_id: idp_id}
+
+      assertion = %{
+        assertion
+        | computed: computed,
+          attributes: attrs,
+          idp_id: idp_id,
+          received_at: System.os_time(:second)
+      }
 
       nameid = assertion.subject.name
       assertion_key = {idp_id, nameid}
@@ -81,7 +88,9 @@ defmodule Samly.SPHandler do
             _ -> "unknown"
           end
 
-        Logger.error("[Samly] ACS consume failed for IdP #{idp_id}: #{inspect(reason)} — server_utc=#{DateTime.utc_now()} assertion_not_on_or_after=#{inspect(not_on_or_after)}")
+        Logger.error(
+          "[Samly] ACS consume failed for IdP #{idp_id}: #{inspect(reason)} — server_utc=#{DateTime.utc_now()} assertion_not_on_or_after=#{inspect(not_on_or_after)}"
+        )
 
         conn
         |> put_private(:samly_error, reason)

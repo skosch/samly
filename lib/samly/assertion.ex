@@ -27,7 +27,8 @@ defmodule Samly.Assertion do
             attributes: %{},
             authn: %{},
             computed: %{},
-            idp_id: ""
+            idp_id: "",
+            received_at: nil
 
   @type t :: %__MODULE__{
           version: String.t(),
@@ -39,7 +40,8 @@ defmodule Samly.Assertion do
           attributes: %{required(attr_name_t()) => attr_value_t()},
           authn: map,
           computed: %{required(attr_name_t()) => attr_value_t()},
-          idp_id: String.t()
+          idp_id: String.t(),
+          received_at: nil | integer()
         }
 
   @doc false
